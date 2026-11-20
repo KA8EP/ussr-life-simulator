@@ -217,6 +217,29 @@
   .market-option .action { max-width: 100%; white-space: normal; }
   .market-option small { color: var(--muted); font-size: .69rem; }
   .choice[data-kind="special"] .choice-property { display: block; margin-top: 2px; color: var(--muted); font-size: .72rem; font-weight: normal; }
+  .family-file { margin-top: 5px; color: var(--muted); font-size: .78rem; }
+  .family-file summary { cursor: pointer; padding: 5px 0; font-weight: bold; color: var(--ink); }
+  .family-file ul { margin: 4px 0; padding-left: 20px; overflow-wrap: anywhere; }
+  .newspaper { margin-top: 12px; padding: 15px; background: #eee4cc; border: 1px solid var(--rule); border-top: 3px solid var(--red); }
+  .paper-date { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px; padding-bottom: 4px; font-size: .74rem; font-weight: bold; }
+  .paper-masthead { font: bold clamp(1.75rem, 6.5vw, 3.3rem)/1.04 var(--title); color: var(--red); text-transform: uppercase; padding: 7px 0; border-block: 3px double var(--ink); text-align: center; }
+  .paper-headline { font: bold clamp(1.55rem, 5.2vw, 2.4rem)/1.04 var(--title); margin: 10px 0 7px; }
+  .paper-story { font: 1rem/1.35 var(--title); }
+  .paper-story + .paper-story { margin-top: 6px; }
+  .paper-prices { display: flex; gap: 7px 16px; flex-wrap: wrap; margin-top: 10px; padding: 5px 0; border-block: 1px solid var(--rule); font-size: .83rem; font-weight: bold; }
+  .paper-prices div { display: flex; gap: 7px; }
+  .paper-caption { margin-top: 5px; color: var(--muted); font-size: .73rem; }
+  #museum-dialog { width: min(710px, calc(100% - 16px)); max-height: min(88dvh, 800px); padding: 0; }
+  .medals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 7px; list-style: none; margin: 0; padding: 12px; }
+  .medal-card { display: grid; grid-template-columns: 48px 1fr; align-items: start; gap: 8px; padding: 7px; min-width: 0; border: 1px solid var(--faint-rule); background: var(--paper); }
+  .medal-icon { display: grid; place-items: center; width: 42px; height: 44px; border-radius: 10px 10px 20px 20px; border: 3px double #e6c48a; background: var(--red); color: #fff5d3; font: bold 1.44rem var(--title); }
+  .medal-icon.gold { background: #755021; }
+  .medal-icon.green { background: #36513d; }
+  .medal-icon.blue { background: #324865; }
+  .medal-card.locked .medal-icon { background: #655c50; border-color: #c4b69e; }
+  .medal-card h3 { font: bold 1rem/1.15 var(--title); }
+  .medal-card p { font-size: .73rem; margin-top: 3px; color: var(--muted); }
+  .badge-state { font-size: .68rem; font-weight: bold; color: var(--red); }
   @media (max-width: 880px) { .sheet { margin-inline: 14px; } }
   @media (max-width: 560px) {
     .masthead-inner { min-height: 43px; padding-inline: 13px; }
@@ -282,6 +305,7 @@
       <p class="birth-preview" id="birth-preview" aria-live="polite"></p>
       <div class="actions">
         <button class="action" id="birth-random" type="button">Случайный год</button>
+        <button class="action" type="button" data-open-museum>Музей наград</button>
         <button class="action" id="resume-button" type="button" hidden>Вернуться к досье</button>
         <button class="action primary" type="submit">Начать жизнь</button>
       </div>
@@ -303,9 +327,27 @@
     </div>
     <div class="property-bar">
       <button class="action property-button" id="market-button" type="button" aria-haspopup="dialog">Имущество и Дефицит</button>
+      <button class="action" type="button" data-open-museum>Музей наград</button>
       <span class="property-summary" id="property-summary"></span>
       <ul class="property-list" id="property-list" aria-label="Приобретённое имущество" hidden></ul>
     </div>
+    <details class="family-file" id="family-file" hidden>
+      <summary id="family-caption">Семья</summary>
+      <ul id="family-list"></ul>
+    </details>
+  </section>
+  <section class="newspaper" id="newspaper" aria-labelledby="paper-title" tabindex="-1" hidden>
+    <div class="paper-date"><span>Исторический выпуск</span><time id="paper-date"></time></div>
+    <h2 class="paper-masthead" id="paper-title">Вестник эпохи</h2>
+    <h3 class="paper-headline" id="paper-headline"></h3>
+    <p class="paper-story" id="paper-story"></p>
+    <p class="paper-story"><strong>Также в выпуске.</strong> <span id="paper-brief"></span></p>
+    <dl class="paper-prices">
+      <div><dt>Хлеб, буханка</dt><dd id="paper-bread"></dd></div>
+      <div><dt>1 доллар США</dt><dd id="paper-dollar"></dd></div>
+    </dl>
+    <p class="paper-caption">Игровые ориентиры в рублях соответствующего года.</p>
+    <div class="actions"><button class="action primary" type="button" id="read-paper">К событию года</button></div>
   </section>
   <section class="scene" id="scene" aria-labelledby="scene-title" tabindex="-1">
     <p class="eyebrow" id="scene-type"></p>
@@ -327,7 +369,10 @@
     <dl class="recap-stats" id="recap-stats"></dl>
     <h3>Отметки архива</h3>
     <ul class="awards" id="awards"></ul>
-    <button class="action primary" type="button" id="restart-button">Начать новую жизнь</button>
+    <div class="actions">
+      <button class="action primary" type="button" id="heir-button" aria-haspopup="dialog" hidden>Продолжить за ребенка</button>
+      <button class="action" type="button" id="restart-button">Начать новую жизнь</button>
+    </div>
   </section>
   <section class="chronicle" id="chronicle" aria-labelledby="chronicle-title">
     <div class="section-head"><h2 id="chronicle-title">Хронология жизни</h2><button class="reset-link" id="change-year" type="button">Новое досье</button></div>
@@ -352,8 +397,25 @@
   </header>
   <div class="market-items" id="market-items"></div>
 </dialog>
+<dialog id="heir-dialog" aria-labelledby="heir-title">
+  <h2 class="scene-heading" id="heir-title">Передать эстафету</h2>
+  <p class="scene-copy" id="heir-copy"></p>
+  <div class="choices" id="heir-list"></div>
+  <form class="actions" method="dialog"><button class="action" type="submit">Вернуться</button></form>
+</dialog>
+<dialog id="museum-dialog" aria-labelledby="museum-title">
+  <header class="market-header">
+    <div class="market-title-row">
+      <h2 class="scene-heading" id="museum-title">Музей наград</h2>
+      <form method="dialog"><button class="action market-close" type="submit" aria-label="Закрыть музей" autofocus>×</button></form>
+    </div>
+    <p class="market-balance" id="museum-count"></p>
+  </header>
+  <ul class="medals" id="museum-list"></ul>
+</dialog>
 <script src="./events.js"></script>
 <script src="./property.js"></script>
+<script src="./dynasty.js"></script>
 <script>
 'use strict';
 
@@ -410,7 +472,8 @@ const periodFamilies = [
     {name: 'Кооператоры', money: 58, reputation: 51, connections: 47, intellect: 47, since: 1988}
   ]}
 ];
-const familiesAt = year => periodFamilies.find(period => year <= period.through).families.filter(family => (family.since ?? 1917) <= year);
+const familiesAt = year => (periodFamilies.find(period => year <= period.through) ?? periodFamilies.at(-1))
+  .families.filter(family => (family.since ?? 1917) <= year);
 const birthPresets = [
   ['Революция и НЭП', 1917, 1928], ['Индустриализация', 1929, 1940],
   ['Военное поколение', 1941, 1945], ['Восстановление', 1946, 1952],
@@ -522,7 +585,7 @@ function catalog(idPrefix, minAge, maxAge, category, riskStat, rows) {
   return rows.trim().split('\n').map((line, index) => {
     const [title, copy, careful, daring, heartfelt, timing = ''] = line.trim().split('|');
     const legacy = !timing;
-    const [slug, firstYear = legacy ? '1917' : '1950', lastYear = '2090', phases, foreign] = timing.split(';');
+    const [slug, firstYear = legacy ? '1917' : '1950', lastYear = 'Infinity', phases, foreign] = timing.split(';');
     const [carefulLabel, carefulEffect, carefulText] = careful.split('~');
     const [riskLabel, success, failure, goodText, badText, base] = daring.split('~');
     const [soulLabel, soulEffect, soulText] = heartfelt.split('~');
@@ -1022,7 +1085,7 @@ newScenes.forEach(card => {
 });
 
 const lifeMilestones = [
-  event('birth-ward', 0, 0, 1917, 1991, 'В роддоме', game => {
+  event('birth-ward', 0, 0, 1917, Infinity, 'В роддоме', game => {
     const opening = 'Первый день жизни. В палате в ' + (game.city === 'Москва' ? 'Москве' : 'родном городе') +
       ' медсестра приносит ребёнка на кормление. Родным предстоит решить, как провести первые дни после выписки.';
     if (game.year === 1961) return opening + ' По радио передают весть о полёте Гагарина.';
@@ -1161,7 +1224,7 @@ ordinary.forEach((card, index) => {
 });
 
 const action = (id, minAge, maxAge, choice, jobsOnly = [], options = {}) =>
-  ({id, minAge, maxAge, minYear: 1917, maxYear: 2090, reqStat: null, choice, jobsOnly, ...options});
+  ({id, minAge, maxAge, minYear: 1917, maxYear: Infinity, reqStat: null, choice, jobsOnly, ...options});
 const pastimes = [
   action('stories', 0, 8, soul('Послушать семейные сказки', {happiness: 8, intellect: 4, money: -2}, 'Разговоры за сказками стали любимым делом семьи.')),
   action('park', 0, 99, soul('Погулять в парке', {health: 5, happiness: 7, money: -4}, 'Прогулка помогла отдохнуть.')),
@@ -1201,7 +1264,7 @@ const freeScenarios = [
   {ids: ['army-books', 'army-letters', 'army-sport'], copy: 'После дежурства осталось немного свободного времени.'}
 ];
 
-const allEvents = [...milestones, ...ordinary, ...service, ...custody, ...opportunities, ...newScenes, ...lifeMilestones, earlyCareer, ...archiveEvents];
+const allEvents = [...milestones, ...ordinary, ...service, ...custody, ...opportunities, ...newScenes, ...lifeMilestones, earlyCareer, ...archiveEvents, ...familyEvents()];
 const byId = Object.fromEntries(allEvents.map(card => [card.id, card]));
 const ordinaryIds = new Set([...ordinary, ...newScenes].map(card => card.id));
 const archiveIds = new Set(archiveEvents.map(card => card.id));
@@ -1256,12 +1319,12 @@ function eligible(card, game) {
     (!card.phases || card.phases.includes(worldAt(game.year).id)) &&
     (!card.deployed || onDeployment(game)) &&
     (!card.requiresDeployment || (game.deployedYear != null && game.job !== 'soldier' && game.year > game.deployedYear)) &&
-    (!card.past || card.past.some(id => hadEvent(game, id)));
+    (!card.past || card.past.some(id => hadEvent(game, id))) && (!card.eligible || card.eligible(game));
 }
 function note(game, title, detail = '') {
   game.history.push({year: game.year, title, detail});
 }
-function newGame(birth) {
+function baseGame(birth) {
   const sex = pick(['m', 'f']);
   const family = pick(familiesAt(birth));
   const initialMoney = family.money * priceScale(birth);
@@ -1278,6 +1341,11 @@ function newGame(birth) {
     riskWins: 0, riskLosses: 0, arrests: 0, persecuted: false, decisions: 0, freeActions: 0,
     endReason: '', awards: [], turn: null
   };
+  initDynasty(game);
+  return game;
+}
+function newGame(birth) {
+  const game = baseGame(birth);
   note(game, 'Рождение в роддоме', cityName(game) + ' · Семья: ' + game.family.toLowerCase());
   startYear(game);
   return game;
@@ -1390,6 +1458,10 @@ function chooseCard(game) {
   if (fixed.length) return pick(fixed);
   const restricted = {prisoner: 'Под стражей', soldier: 'Военная служба', front: 'Фронт'}[game.job];
   if (restricted) return pick(pool.filter(card => card.category === restricted)) ?? pick(pool.filter(card => ordinaryIds.has(card.id)));
+  const personal = pool.filter(card => card.category === 'Семья');
+  if (personal.length && Math.random() < .46) return pick(personal);
+  const sport = pool.find(card => card.id === 'badge-sport');
+  if (sport && Math.random() < .2) return sport;
   const early = pool.filter(card => archiveIds.has(card.id));
   if (early.length && Math.random() < .92) return pick(early);
   const dated = pool.filter(card => card.minYear === card.maxYear);
@@ -1483,9 +1555,12 @@ function startYear(game) {
     game.health = 0;
   }
   if (checkEnd(game)) return;
+  beginTurn(game);
+}
+function beginTurn(game) {
   const card = chooseCard(game);
   game.usedEvents.push(card.id);
-  game.turn = {cardId: card.id, choiceOrder: shuffle([0, 1, 2, 3]), freeUsed: false,
+  game.turn = {cardId: card.id, choiceOrder: shuffle([0, 1, 2, 3]), freeUsed: false, paperRead: false,
     ...drawPastimes(game), result: null, activityResult: null};
 }
 function drawPastimes(game) {
@@ -1592,6 +1667,7 @@ function resolveChoice(game, choice, activity = false) {
   if (effects.warAward) delta.push('Награды +' + effects.warAward);
   if (effects.warWound) delta.push('Ранения +' + effects.warWound);
   if (isRisk) delta.push('Кубик: ' + roll + ' из 100 при шансе ' + odds + '%');
+  if (effects.family) lines.push(applyFamilyChoice(game, effects.family));
   const summary = lines.filter(Boolean).join(' ');
   const detail = delta.join(' · ');
   note(game, (activity ? 'Свободное действие: ' : '') + choice.label, [summary, detail].filter(Boolean).join(' '));
@@ -1600,6 +1676,9 @@ function resolveChoice(game, choice, activity = false) {
 }
 
 const nodes = Object.fromEntries([
+  'family-file', 'family-caption', 'family-list', 'heir-button', 'heir-dialog', 'heir-copy', 'heir-list',
+  'newspaper', 'paper-date', 'paper-headline', 'paper-story', 'paper-brief', 'paper-bread', 'paper-dollar', 'read-paper',
+  'museum-dialog', 'museum-count', 'museum-list',
   'market-button', 'market-dialog', 'market-balance', 'market-items', 'market-feedback', 'property-list', 'property-summary',
   'creation', 'birth-form', 'birth-year', 'birth-slider', 'birth-presets', 'birth-preview', 'birth-random', 'resume-button', 'change-year',
   'profile', 'chronicle', 'loyalty',
@@ -1632,6 +1711,7 @@ function load() {
       saved.penalService ??= false;
       saved.property ??= {};
       saved.orders ??= {};
+      initDynasty(saved);
       if (saved.turn) {
         saved.turn.choiceOrder ??= shuffle([0, 1, 2, 3]);
         saved.turn.freeCopy ??= 'На сегодня осталось время для одного свободного занятия.';
@@ -1687,6 +1767,7 @@ function drawStats(game) {
   nodes['property-list'].hidden = !possessions.length;
   nodes['property-list'].replaceChildren(...possessions.map(item => element('li', '', item.name)));
   nodes['property-summary'].textContent = orders.length ? 'В очереди · ' + orders.length + (ready ? ' · Можно забрать · ' + ready : '') : '';
+  drawFamily(game);
   const phase = worldAt(game.year);
   nodes.world.classList.toggle('high', phase.scrutiny >= 10);
   nodes['world-phase'].textContent = phase.title;
@@ -1804,6 +1885,8 @@ function drawReport(game) {
     ['Арестов', game.arrests]
   ];
   if (game.deployedYear != null) report.push(['Служба в Афганистане с', game.deployedYear]);
+  if (game.generation > 1) report.push(['Поколение', game.generation]);
+  if (game.children.length) report.push(['Дети', game.children.length]);
   if (game.warServiceYear != null) {
     report.push(['Мобилизация', game.warServiceYear], ['Ранения на фронте', game.warWounds], ['Награды за службу', game.warAwards]);
   }
@@ -1812,27 +1895,34 @@ function drawReport(game) {
     row.append(element('dt', '', label), element('dd', '', value));
     return row;
   }));
-  nodes.awards.replaceChildren(...game.awards.map(award => element('li', '', award)));
+  const titles = [...game.awards, ...museumBadges.filter(([id]) => game.badgesEarned.includes(id)).map(([, title]) => title)];
+  nodes.awards.replaceChildren(...[...new Set(titles)].map(award => element('li', '', award)));
+  nodes['heir-button'].hidden = !heirsOf(game).length;
 }
 function render(focus = false) {
   const ended = Boolean(game.endReason);
+  const issue = !ended && !game.turn.result && !game.turn.paperRead ? newspaperIssues[game.year] : null;
+  unlockBadges(game);
   nodes.creation.hidden = true;
   nodes.profile.hidden = false;
   nodes.chronicle.hidden = false;
   drawStats(game);
   drawTimeline(game);
   nodes['stamp-state'].textContent = ended ? 'ДЕЛО ЗАКРЫТО' : 'ДЕЛО ОТКРЫТО';
-  nodes.scene.hidden = ended;
+  nodes.newspaper.hidden = !issue;
+  nodes.scene.hidden = ended || Boolean(issue);
   nodes.recap.hidden = !ended;
   if (ended) drawReport(game);
+  else if (issue) drawNewspaper(game.year, issue);
   else drawScene(game);
-  if (focus) (ended ? nodes.recap : nodes.scene).focus({preventScroll: true});
+  if (focus) (ended ? nodes.recap : issue ? nodes.newspaper : nodes.scene).focus({preventScroll: true});
   save(game);
 }
 function chooseMain(choice) {
   if (game.endReason || game.turn.result) return;
   game.decisions++;
   game.turn.result = resolveChoice(game, choice);
+  recordBadgeFact(game, game.turn.cardId, choice, !game.turn.result.bad);
   checkEnd(game);
   render(true);
 }
@@ -1844,6 +1934,53 @@ function choosePastime(id) {
   nodes['free-dialog'].close();
   checkEnd(game);
   render(true);
+}
+
+function drawFamily(game) {
+  const list = [];
+  if (game.partner) {
+    const title = game.marriedYear == null ? 'Отношения' : 'Брак с ' + game.marriedYear + ' года';
+    list.push(title + ' · ' + game.partner.name);
+  }
+  for (const child of game.children) {
+    list.push((child.sex === 'm' ? 'Сын' : 'Дочь') + ' · ' + child.firstName + ' ' + child.surname + ' · ' + ageLabel(game.year - child.birth));
+  }
+  if (game.stigma) list.push('Семейное клеймо: родитель или предок подвергся репрессиям.');
+  for (const ancestor of [...game.lineage].reverse()) {
+    list.push('Предыдущее досье · ' + ancestor.name + ' (' + ancestor.birth + '–' + ancestor.death + ')');
+  }
+  nodes['family-file'].hidden = !list.length;
+  nodes['family-caption'].textContent = 'Семья · Поколение ' + game.generation;
+  nodes['family-list'].replaceChildren(...list.map(item => element('li', '', item)));
+}
+
+function drawNewspaper(year, issue) {
+  const [headline, story, brief, bread, dollar] = issue;
+  nodes['paper-date'].dateTime = String(year);
+  nodes['paper-date'].textContent = year + ' год';
+  nodes['paper-headline'].textContent = headline;
+  nodes['paper-story'].textContent = story;
+  nodes['paper-brief'].textContent = brief;
+  nodes['paper-bread'].textContent = currency(bread);
+  nodes['paper-dollar'].textContent = currency(dollar);
+}
+
+function openMuseum() {
+  const collection = readMuseum();
+  nodes['museum-count'].textContent = 'Открыто ' + collection.size + ' из ' + museumBadges.length;
+  nodes['museum-list'].replaceChildren(...museumBadges.map(([id, title, description, glyph, color]) => {
+    const earned = collection.has(id);
+    const medal = element('li', earned ? 'medal-card' : 'medal-card locked');
+    const icon = element('span', 'medal-icon ' + color, glyph);
+    icon.setAttribute('aria-hidden', 'true');
+    const copy = element('div');
+    copy.append(element('h3', '', title), element('span', 'badge-state', earned ? 'Открыт' : 'Закрыт'),
+      element('p', '', description));
+    medal.append(icon, copy);
+    return medal;
+  }));
+  nodes['museum-dialog'].showModal();
+  nodes['museum-dialog'].scrollTop = 0;
 }
 
 function drawMarket(game) {
@@ -1862,7 +1999,7 @@ function drawMarket(game) {
     section.id = 'offer-' + item.id;
     section.tabIndex = -1;
     section.append(element('h3', '', item.name));
-    const meta = owned ? 'В собственности с ' + owned.year + ' года' :
+    const meta = owned ? (owned.inherited ? 'По наследству с ' : 'В собственности с ') + owned.year + ' года' :
       currency(marketPrice(game, item)) + ' · Блат от ' + item.access + (item.queue ? ' · Очередь ' + item.queue.join('–') + ' лет' : '');
     section.append(element('p', 'market-meta', meta));
     section.append(element('p', 'market-bonus', 'Ежегодно · ' + statsText(item.annual)));
@@ -1897,6 +2034,34 @@ function drawMarket(game) {
 }
 
 let game = load();
+for (const button of document.querySelectorAll('[data-open-museum]')) button.addEventListener('click', openMuseum);
+nodes['read-paper'].addEventListener('click', () => {
+  if (!game?.turn || game.endReason) return;
+  game.turn.paperRead = true;
+  render(true);
+});
+nodes['heir-button'].addEventListener('click', () => {
+  const parent = game;
+  const heirs = heirsOf(parent);
+  if (!heirs.length) return;
+  nodes['heir-copy'].textContent = 'Год — ' + parent.year + '. Наследник получит 60% положительных сбережений, квартиру и дачу, если они есть в досье.';
+  nodes['heir-list'].replaceChildren(...heirs.map(child => {
+    const label = child.firstName + ' ' + child.surname + ' · ' + ageLabel(parent.year - child.birth);
+    const button = element('button', 'action', label);
+    button.type = 'button';
+    button.addEventListener('click', () => {
+      if (game !== parent) return;
+      const successor = inheritDynasty(parent, child);
+      if (!successor) return;
+      game = successor;
+      nodes['heir-dialog'].close();
+      render(true);
+      window.scrollTo(0, 0);
+    });
+    return button;
+  }));
+  nodes['heir-dialog'].showModal();
+});
 nodes['market-button'].addEventListener('click', () => {
   nodes['market-feedback'].textContent = '';
   drawMarket(game);
@@ -1925,6 +2090,7 @@ function showCreation() {
   nodes.creation.hidden = false;
   nodes.profile.hidden = true;
   nodes.scene.hidden = true;
+  nodes.newspaper.hidden = true;
   nodes.recap.hidden = true;
   nodes.chronicle.hidden = true;
   nodes['stamp-state'].textContent = 'НОВОЕ ДОСЬЕ';
