@@ -119,6 +119,11 @@
   .world.high { border-left-color: var(--red); }
   .world-label { color: var(--red); font-weight: bold; letter-spacing: .045em; text-transform: uppercase; margin-right: 7px; }
   .world-detail { color: var(--muted); }
+  .property-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 10px; margin-top: 7px; }
+  .property-button { border-color: var(--red); color: var(--red); min-height: 42px; }
+  .property-summary { color: var(--muted); font-size: .75rem; }
+  .property-list { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; list-style: none; margin: 0; padding: 0; }
+  .property-list li { padding: 2px 6px; border: 1px solid var(--faint-rule); background: #f1e6cd; font-size: .75rem; }
   .scene {
     position: relative;
     margin-top: 17px;
@@ -194,6 +199,24 @@
   dialog::backdrop { background: #232a37a8; }
   dialog .choices { grid-template-columns: 1fr; }
   dialog .actions { justify-content: flex-end; }
+  #market-dialog { width: min(670px, calc(100% - 16px)); max-height: min(86vh, 780px); max-height: min(86dvh, 780px); padding: 0; }
+  .market-header { position: sticky; top: 0; z-index: 1; padding: 11px 14px 8px; background: var(--white-paper); border-bottom: 1px solid var(--rule); }
+  .market-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .market-title-row form { flex: none; }
+  .market-close { min-width: 44px; min-height: 44px; padding: 3px; font-size: 1.35rem; }
+  .market-balance { margin-top: 3px; font-size: .83rem; font-weight: bold; }
+  .market-feedback { margin-top: 5px; color: var(--red); font-size: .78rem; }
+  .market-items { display: grid; grid-template-columns: 1fr; gap: 7px; padding: 9px 14px 14px; }
+  .market-item { min-width: 0; padding: 8px; border: 1px solid var(--faint-rule); background: var(--paper); }
+  .market-item h3 { font: bold 1.08rem/1.2 var(--title); overflow-wrap: anywhere; }
+  .market-meta, .market-bonus, .market-state { margin-top: 3px; font-size: .76rem; overflow-wrap: anywhere; }
+  .market-meta { color: var(--muted); }
+  .market-state { color: var(--red); font-weight: bold; }
+  .market-options { display: flex; flex-wrap: wrap; gap: 5px 7px; margin-top: 7px; }
+  .market-option { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; max-width: 100%; }
+  .market-option .action { max-width: 100%; white-space: normal; }
+  .market-option small { color: var(--muted); font-size: .69rem; }
+  .choice[data-kind="special"] .choice-property { display: block; margin-top: 2px; color: var(--muted); font-size: .72rem; font-weight: normal; }
   @media (max-width: 880px) { .sheet { margin-inline: 14px; } }
   @media (max-width: 560px) {
     .masthead-inner { min-height: 43px; padding-inline: 13px; }
@@ -278,6 +301,11 @@
       <div><span class="world-label">Эпоха</span><strong id="world-phase"></strong></div>
       <span class="world-detail" id="world-detail"></span>
     </div>
+    <div class="property-bar">
+      <button class="action property-button" id="market-button" type="button" aria-haspopup="dialog">Имущество и Дефицит</button>
+      <span class="property-summary" id="property-summary"></span>
+      <ul class="property-list" id="property-list" aria-label="Приобретённое имущество" hidden></ul>
+    </div>
   </section>
   <section class="scene" id="scene" aria-labelledby="scene-title" tabindex="-1">
     <p class="eyebrow" id="scene-type"></p>
@@ -313,7 +341,19 @@
   <div class="choices" id="free-choices"></div>
   <form class="actions" method="dialog"><button class="action" type="submit">Вернуться</button></form>
 </dialog>
+<dialog id="market-dialog" aria-labelledby="market-title">
+  <header class="market-header">
+    <div class="market-title-row">
+      <h2 class="scene-heading" id="market-title">Имущество и Дефицит</h2>
+      <form method="dialog"><button class="action market-close" type="submit" aria-label="Закрыть имущество" autofocus>×</button></form>
+    </div>
+    <p class="market-balance" id="market-balance"></p>
+    <p class="market-feedback" id="market-feedback" role="status"></p>
+  </header>
+  <div class="market-items" id="market-items"></div>
+</dialog>
 <script src="./events.js"></script>
+<script src="./property.js"></script>
 <script>
 'use strict';
 
@@ -1234,6 +1274,7 @@ function newGame(birth) {
     prisonUntil: 0, demobYear: 0, graduationYear: 0, draftYear: 0, draftChecked: false,
     deployedYear: null, deploymentRollYear: 0, career: ['child'], history: [], usedEvents: [],
     warServiceYear: null, warFormerJob: null, warWounds: 0, warAwards: 0, penalService: false,
+    property: {}, orders: {},
     riskWins: 0, riskLosses: 0, arrests: 0, persecuted: false, decisions: 0, freeActions: 0,
     endReason: '', awards: [], turn: null
   };
@@ -1412,7 +1453,7 @@ function startYear(game) {
       'Накопления потеряли ' + currency(loss) + ' покупательной силы.');
   }
   const income = Math.round(jobs[game.job].income * priceScale(game.year) * (rate ? .48 + rate * .52 : 1));
-  const expenses = Math.round(income * (age < 18 ? .46 : .87));
+  const expenses = Math.round(income * ((age < 18 ? .46 : .87) - (owns(game, 'apartment') ? .05 : 0)));
   game.annualIncome = income;
   game.annualJob = game.job;
   game.totalIncome = cents(game.totalIncome + income);
@@ -1427,9 +1468,17 @@ function startYear(game) {
     game.health = clamp(game.health - 2, 0, 100);
   }
   resolveFrontYear(game);
-  if (game.money < 0) game.happiness = clamp(game.happiness - 3, 0, 100);
+  if (game.money < 0) {
+    if (game.year >= 1992 && game.year <= 1999 && owns(game, 'dacha')) {
+      note(game, 'Запасы с дачи', 'Урожай помог пережить нехватку денег на еду.');
+    } else {
+      game.happiness = clamp(game.happiness - 3, 0, 100);
+      if (game.year >= 1992 && game.year <= 1999) game.health = clamp(game.health - 3, 0, 100);
+    }
+  }
   if (age > 60) game.health = clamp(game.health - rand(1, 3), 0, 100);
   if (age >= 19) game.happiness = clamp(game.happiness - rand(1, age > 60 ? 3 : 4), 0, 100);
+  creditPropertyYear(game);
   if (age >= 100 || (age >= 78 && Math.random() * 100 < Math.max(0, (age - 77) * .95 + (45 - game.health) * .43))) {
     game.health = 0;
   }
@@ -1551,6 +1600,7 @@ function resolveChoice(game, choice, activity = false) {
 }
 
 const nodes = Object.fromEntries([
+  'market-button', 'market-dialog', 'market-balance', 'market-items', 'market-feedback', 'property-list', 'property-summary',
   'creation', 'birth-form', 'birth-year', 'birth-slider', 'birth-presets', 'birth-preview', 'birth-random', 'resume-button', 'change-year',
   'profile', 'chronicle', 'loyalty',
   'stamp-state', 'monogram', 'person-name', 'person-note', 'date-year', 'date-note', 'stats', 'income', 'intellect', 'scene',
@@ -1580,6 +1630,8 @@ function load() {
       saved.warWounds ??= 0;
       saved.warAwards ??= 0;
       saved.penalService ??= false;
+      saved.property ??= {};
+      saved.orders ??= {};
       if (saved.turn) {
         saved.turn.choiceOrder ??= shuffle([0, 1, 2, 3]);
         saved.turn.freeCopy ??= 'На сегодня осталось время для одного свободного занятия.';
@@ -1629,6 +1681,12 @@ function drawStats(game) {
   nodes.income.textContent = source ? source + ' за год · ' + currency(game.annualIncome) : 'За этот год выплат не было';
   nodes.intellect.textContent = 'Интеллект · ' + game.intellect;
   nodes.loyalty.textContent = 'Лояльность · ' + game.loyalty;
+  const possessions = propertyCatalog.filter(item => owns(game, item.id));
+  const orders = Object.values(game.orders);
+  const ready = orders.filter(year => year <= game.year).length;
+  nodes['property-list'].hidden = !possessions.length;
+  nodes['property-list'].replaceChildren(...possessions.map(item => element('li', '', item.name)));
+  nodes['property-summary'].textContent = orders.length ? 'В очереди · ' + orders.length + (ready ? ' · Можно забрать · ' + ready : '') : '';
   const phase = worldAt(game.year);
   nodes.world.classList.toggle('high', phase.scrutiny >= 10);
   nodes['world-phase'].textContent = phase.title;
@@ -1649,13 +1707,15 @@ function choiceButton(game, choice, callback) {
   button.type = 'button';
   button.dataset.kind = choice.kind;
   button.title = kindLabels[choice.kind];
-  button.append(icon, element('span', 'choice-text', choice.label));
+  const text = element('span', 'choice-text', choice.label);
+  if (choice.propertyName) text.append(element('small', 'choice-property', choice.propertyName));
+  button.append(icon, text);
   if (choice.chance) {
     const percent = chance(choice, game);
     button.append(element('span', 'chance', percent + '%'));
     button.setAttribute('aria-label', choice.label + '. Шанс успеха ' + percent + ' процентов');
   } else {
-    button.setAttribute('aria-label', choice.label + '. ' + kindLabels[choice.kind]);
+    button.setAttribute('aria-label', choice.label + '. ' + (choice.propertyName ? 'Бонус имущества: ' + choice.propertyName : kindLabels[choice.kind]));
   }
   button.addEventListener('click', callback);
   return button;
@@ -1677,13 +1737,17 @@ function drawTimeline(game) {
 function availableChoices(game) {
   const card = byId[game.turn.cardId];
   let choices = typeof card.choices === 'function' ? card.choices(game) : card.choices;
-  if (['prisoner', 'soldier', 'front'].includes(game.job) && ordinaryIds.has(card.id)) {
+  const restricted = ['prisoner', 'soldier', 'front'].includes(game.job);
+  if (restricted && ordinaryIds.has(card.id)) {
     choices = [
       safe('Ответить и подсказать, что делать', {reputation: 5, intellect: 3}, 'Близкие воспользовались советом.'),
       risk('Попросить связаться с давним знакомым', 30, 'connections', {connections: 6, money: 85}, {happiness: -5, money: -25},
         'Давний знакомый помог уладить дело.', 'К тому времени знакомый уже уехал.'),
       soul('Написать близким слова поддержки', {happiness: 10, money: -4}, 'Ответное письмо пришло через несколько недель.')
     ];
+  } else if (!restricted) {
+    const ownedAnswer = propertyChoice(game, card.id);
+    if (ownedAnswer) choices = [...choices.slice(0, 3), ownedAnswer];
   }
   return game.turn.choiceOrder.map(index => choices[index])
     .filter(choice => choice && (choice.kind !== 'special' || canUnlock(choice, game)))
@@ -1692,6 +1756,7 @@ function availableChoices(game) {
       : choice);
 }
 function canUnlock(choice, game) {
+  if (choice.propertyName) return true;
   const {connections, reputation, past} = choice.unlock ?? {};
   if (connections == null && reputation == null && !past) {
     return game.connections >= 55 || game.reputation >= 75;
@@ -1781,7 +1846,63 @@ function choosePastime(id) {
   render(true);
 }
 
+function drawMarket(game) {
+  nodes['market-balance'].textContent = game.year + ' · ' + currency(game.money) + ' · Блат ' + game.connections;
+  const items = propertyCatalog.filter(item => onSale(item, game.year) || owns(game, item.id) || game.orders[item.id])
+    .sort((a, b) => Number(Boolean(game.orders[b.id])) - Number(Boolean(game.orders[a.id])));
+  if (!items.length) {
+    nodes['market-items'].replaceChildren(element('p', 'market-meta', 'В этот период в каталоге нет предложений.'));
+    return;
+  }
+  const statsText = stats => Object.entries(stats).map(([key, value]) => '+' + value + ' ' + statLabels[key]).join(' · ');
+  nodes['market-items'].replaceChildren(...items.map(item => {
+    const owned = game.property[item.id];
+    const ready = game.orders[item.id];
+    const section = element('article', 'market-item');
+    section.id = 'offer-' + item.id;
+    section.tabIndex = -1;
+    section.append(element('h3', '', item.name));
+    const meta = owned ? 'В собственности с ' + owned.year + ' года' :
+      currency(marketPrice(game, item)) + ' · Блат от ' + item.access + (item.queue ? ' · Очередь ' + item.queue.join('–') + ' лет' : '');
+    section.append(element('p', 'market-meta', meta));
+    section.append(element('p', 'market-bonus', 'Ежегодно · ' + statsText(item.annual)));
+    if (item.receipt) section.append(element('p', 'market-meta', 'При покупке · ' + statsText(item.receipt)));
+    if (item.description) section.append(element('p', 'market-meta', item.description));
+    if (ready) section.append(element('p', 'market-state', ready > game.year ? 'Очередь подойдёт в ' + ready + ' году' : 'Очередь подошла · можно забрать'));
+    const options = marketOptions(game, item);
+    if (options.length) {
+      const controls = element('div', 'market-options');
+      controls.append(...options.map(offer => {
+        const row = element('div', 'market-option');
+        const label = offer.label + (offer.cost != null ? ' · ' + currency(offer.cost) : '');
+        const button = element('button', 'action', label);
+        button.type = 'button';
+        button.disabled = Boolean(offer.blocked);
+        button.setAttribute('aria-label', label + '. ' + item.name);
+        button.addEventListener('click', () => {
+          const result = transactProperty(game, item.id, offer.route);
+          if (result.ok) render();
+          drawMarket(game);
+          nodes['market-feedback'].textContent = result.message;
+          document.getElementById('offer-' + item.id)?.focus({preventScroll: true});
+        });
+        row.append(button);
+        if (offer.blocked) row.append(element('small', '', offer.blocked));
+        return row;
+      }));
+      section.append(controls);
+    }
+    return section;
+  }));
+}
+
 let game = load();
+nodes['market-button'].addEventListener('click', () => {
+  nodes['market-feedback'].textContent = '';
+  drawMarket(game);
+  nodes['market-dialog'].showModal();
+  nodes['market-dialog'].scrollTop = 0;
+});
 const birthInput = nodes['birth-year'];
 const birthSlider = nodes['birth-slider'];
 function updateBirthPreview() {
