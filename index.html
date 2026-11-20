@@ -160,6 +160,14 @@
   .action:disabled { border-color: var(--rule); background: #eae1cd; color: var(--muted); }
   .action-note { color: var(--muted); font-size: .76rem; text-align: right; }
   .activity-result { margin-top: 8px; padding-top: 7px; border-top: 1px dotted var(--rule); color: var(--muted); font-size: .79rem; }
+  .birth-controls { display: grid; grid-template-columns: 1fr 6rem; gap: 8px; align-items: center; margin: 14px 0; }
+  .birth-controls input { min-width: 0; width: 100%; color: var(--ink); accent-color: var(--red); font: inherit; }
+  .birth-controls input[type=number] { min-height: 44px; padding: 5px 7px; border: 1px solid var(--rule); background: var(--paper); }
+  .birth-controls input[type=range] { grid-column: 1 / -1; margin: 0; min-height: 32px; }
+  .birth-presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr)); gap: 6px; }
+  .birth-presets .action { justify-content: flex-start; text-align: left; }
+  .birth-preview { margin-top: 12px; font-size: .83rem; line-height: 1.4; color: var(--muted); }
+  .reset-link { min-height: 36px; padding: 3px 0 3px 6px; border: 0; background: none; color: var(--red); font-size: .75rem; cursor: pointer; text-decoration: underline; }
   .chronicle { margin-top: 17px; padding-top: 10px; border-top: 3px double var(--ink); }
   .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
   .section-head h2 { font: bold 1.14rem/1.12 var(--title); }
@@ -238,7 +246,25 @@
     <div><p class="eyebrow">СССР и после</p><h1>Личное дело</h1><p class="cover-note">Каждый год — новое решение</p></div>
     <div class="stamp" aria-hidden="true">ЛИЧНО<small id="stamp-state">ДЕЛО ОТКРЫТО</small></div>
   </header>
-  <section aria-label="Данные героя">
+  <section class="scene" id="creation" aria-labelledby="creation-title" tabindex="-1" hidden>
+    <p class="eyebrow">Новое досье</p>
+    <h2 class="scene-heading" id="creation-title">Выберите год рождения</h2>
+    <form id="birth-form">
+      <div class="birth-controls">
+        <label for="birth-year">Год рождения</label>
+        <input id="birth-year" type="number" min="1917" max="1991" value="1957" required>
+        <input id="birth-slider" type="range" min="1917" max="1991" value="1957" aria-label="Год рождения, ползунок">
+      </div>
+      <div class="birth-presets" id="birth-presets" aria-label="Эпохи"></div>
+      <p class="birth-preview" id="birth-preview" aria-live="polite"></p>
+      <div class="actions">
+        <button class="action" id="birth-random" type="button">Случайный год</button>
+        <button class="action" id="resume-button" type="button" hidden>Вернуться к досье</button>
+        <button class="action primary" type="submit">Начать жизнь</button>
+      </div>
+    </form>
+  </section>
+  <section id="profile" aria-label="Данные героя">
     <div class="identity">
       <div class="person">
         <div class="monogram" id="monogram" aria-hidden="true"></div>
@@ -247,9 +273,9 @@
       <div class="date-card"><div class="date-year" id="date-year"></div><div class="date-note" id="date-note"></div></div>
     </div>
     <dl class="stats" id="stats" aria-label="Характеристики"></dl>
-    <div class="ledger"><span id="income"></span><span id="intellect"></span></div>
+    <div class="ledger"><span id="income"></span><span id="intellect"></span><span id="loyalty"></span></div>
     <div class="world" id="world">
-      <div><span class="world-label">Холодная война</span><strong id="world-phase"></strong></div>
+      <div><span class="world-label">Эпоха</span><strong id="world-phase"></strong></div>
       <span class="world-detail" id="world-detail"></span>
     </div>
   </section>
@@ -275,8 +301,8 @@
     <ul class="awards" id="awards"></ul>
     <button class="action primary" type="button" id="restart-button">Начать новую жизнь</button>
   </section>
-  <section class="chronicle" aria-labelledby="chronicle-title">
-    <div class="section-head"><h2 id="chronicle-title">Хронология жизни</h2><span>Новые записи сверху</span></div>
+  <section class="chronicle" id="chronicle" aria-labelledby="chronicle-title">
+    <div class="section-head"><h2 id="chronicle-title">Хронология жизни</h2><button class="reset-link" id="change-year" type="button">Новое досье</button></div>
     <ol class="entries" id="entries" tabindex="0" aria-label="Записи хронологии"></ol>
   </section>
 </main>
@@ -287,6 +313,7 @@
   <div class="choices" id="free-choices"></div>
   <form class="actions" method="dialog"><button class="action" type="submit">Вернуться</button></form>
 </dialog>
+<script src="./events.js"></script>
 <script>
 'use strict';
 
@@ -318,12 +345,49 @@ const backgrounds = [
   {name: 'Номенклатура', money: 60, reputation: 61, connections: 53, intellect: 46},
   {name: 'Колхозники', money: 17, reputation: 47, connections: 12, intellect: 37}
 ];
+const periodFamilies = [
+  {through: 1928, families: [
+    {name: 'Крестьяне-единоличники', money: 16, reputation: 44, connections: 14, intellect: 38, loyalty: 46, originRisk: 13},
+    {name: 'Нэпманы', money: 58, reputation: 44, connections: 46, intellect: 47, loyalty: 38, originRisk: 22, since: 1921},
+    {name: 'Пролетарии', money: 24, reputation: 59, connections: 25, intellect: 40, loyalty: 66, originRisk: 0},
+    {name: 'Бывшие дворяне', money: 22, reputation: 30, connections: 21, intellect: 61, loyalty: 37, originRisk: 29},
+    {name: 'Ремесленники', money: 29, reputation: 50, connections: 25, intellect: 45, loyalty: 49, originRisk: 7}
+  ]},
+  {through: 1940, families: [
+    {name: 'Колхозники', money: 16, reputation: 49, connections: 13, intellect: 37, loyalty: 54, originRisk: 6},
+    {name: 'Заводские рабочие', money: 25, reputation: 58, connections: 24, intellect: 42, loyalty: 65, originRisk: 0},
+    {name: 'Технические специалисты', money: 35, reputation: 52, connections: 33, intellect: 57, loyalty: 55, originRisk: 7},
+    {name: 'Семья бывшего торговца', money: 25, reputation: 35, connections: 30, intellect: 49, loyalty: 37, originRisk: 21}
+  ]},
+  {through: 1952, families: [
+    {name: 'Рабочие тыла', money: 20, reputation: 55, connections: 18, intellect: 43, loyalty: 65, originRisk: 0},
+    {name: 'Эвакуированные', money: 15, reputation: 49, connections: 10, intellect: 46, loyalty: 54, originRisk: 4},
+    {name: 'Семья военнослужащих', money: 25, reputation: 59, connections: 28, intellect: 41, loyalty: 70, originRisk: 0},
+    {name: 'Сельские труженики', money: 16, reputation: 48, connections: 13, intellect: 38, loyalty: 55, originRisk: 4}
+  ]},
+  {through: 1991, families: [...backgrounds,
+    {name: 'Инженеры', money: 39, reputation: 58, connections: 34, intellect: 59, since: 1953},
+    {name: 'Кооператоры', money: 58, reputation: 51, connections: 47, intellect: 47, since: 1988}
+  ]}
+];
+const familiesAt = year => periodFamilies.find(period => year <= period.through).families.filter(family => (family.since ?? 1917) <= year);
+const birthPresets = [
+  ['Революция и НЭП', 1917, 1928], ['Индустриализация', 1929, 1940],
+  ['Военное поколение', 1941, 1945], ['Восстановление', 1946, 1952],
+  ['Оттепель', 1953, 1964], ['Застой', 1965, 1984], ['Перестройка', 1985, 1991]
+];
+const professionsAt = year => year < 1929 ? ['ремесло', 'учёба', 'хозяйство', 'артель']
+  : year < 1967 ? ['ученичество при заводе', 'колхоз', 'медицина', 'вуз'] : ['ПТУ', 'вуз', 'завод', 'служба'];
 const jobs = {
   child: {label: ['Ребёнок', 'Ребёнок'], income: 12, source: 'Деньги на карманные расходы'},
   school: {label: ['Школьник', 'Школьница'], income: 24, source: 'Деньги на карманные расходы'},
   student: {label: ['Студент', 'Студентка'], income: 490, source: 'Стипендия'},
   vocational: {label: ['Учащийся ПТУ', 'Учащаяся ПТУ'], income: 375, source: 'Стипендия'},
+  apprentice: {label: ['Ученик ремесла', 'Ученица ремесла'], income: 420, source: 'Оплата ученичества'},
+  farm: {label: ['Труженик села', 'Труженица села'], income: 770, source: 'Доход хозяйства'},
+  nurse: {label: ['Медбрат', 'Медсестра'], income: 1140, source: 'Зарплата'},
   soldier: {label: ['Солдат', 'Солдат'], income: 165, source: 'Довольствие'},
+  front: {label: ['На фронте', 'На фронте'], income: 250, source: 'Довольствие'},
   worker: {label: ['Рабочий', 'Рабочая'], income: 1440, source: 'Зарплата'},
   engineer: {label: ['Инженер', 'Инженер'], income: 1790, source: 'Зарплата'},
   cooperator: {label: ['Кооператор', 'Кооператор'], income: 2490, source: 'Доход от дела'},
@@ -335,24 +399,33 @@ const stats = [
   ['health', 'Здоровье'], ['happiness', 'Счастье'], ['money', 'Деньги'],
   ['reputation', 'Репутация'], ['connections', 'Блат']
 ];
-const meters = [...stats.filter(([key]) => key !== 'money'), ['intellect', 'Интеллект']];
-const statLabels = Object.fromEntries([...stats, ['intellect', 'Интеллект']]);
-const rubles = new Intl.NumberFormat('ru-RU');
+const extraStats = [['intellect', 'Интеллект'], ['loyalty', 'Лояльность']];
+const meters = [...stats.filter(([key]) => key !== 'money'), ...extraStats];
+const statLabels = Object.fromEntries([...stats, ...extraStats]);
+const rubles = new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2});
 const yearsPlural = new Intl.PluralRules('ru-RU');
 const ageLabel = age => age + ' ' + ({one: 'год', few: 'года', many: 'лет', other: 'лет'}[yearsPlural.select(age)]);
 const currency = amount => rubles.format(amount) + ' ₽';
 const lifeAge = game => game.year - game.birth;
 const worldPhases = [
-  {through: 1953, id: 'stalin', title: 'Поздний сталинизм', scrutiny: 12, note: 'Строгий надзор за импортом'},
+  {through: 1920, id: 'civil', title: 'Революция и Гражданская война', scrutiny: 15, note: 'Продразвёрстка и нехватка продовольствия'},
+  {through: 1922, id: 'civil', title: 'Гражданская война и начало НЭПа', scrutiny: 9, note: 'Продналог и возобновление торговли'},
+  {through: 1928, id: 'nep', title: 'НЭП', scrutiny: 5, note: 'Артели и частная торговля'},
+  {through: 1936, id: 'industry', title: 'Индустриализация и коллективизация', scrutiny: 14, note: 'Большие стройки и давление на деревню'},
+  {through: 1938, id: 'terror', title: 'Индустриализация · Большой террор', scrutiny: 22, note: 'Происхождение и лояльность влияют на риск репрессий'},
+  {through: 1940, id: 'industry', title: 'Индустриализация · Предвоенные годы', scrutiny: 15, note: 'Стройки и ужесточение трудовой дисциплины'},
+  {through: 1945, id: 'war', title: 'Великая Отечественная война', scrutiny: 19, note: 'Мобилизация, эвакуация и карточное снабжение'},
+  {through: 1952, id: 'stalin', title: 'Послевоенное восстановление', scrutiny: 12, note: 'Возвращение семей и восстановление городов'},
   {through: 1961, id: 'thaw', title: 'Оттепель', scrutiny: 5, note: 'Импорт остаётся редкостью'},
   {through: 1962, id: 'crisis', title: 'Карибский кризис', scrutiny: 18, note: 'Усилены проверки'},
   {through: 1964, id: 'thaw', title: 'Оттепель', scrutiny: 5, note: 'Импорт остаётся редкостью'},
-  {through: 1968, id: 'rivalry', title: 'Соперничество блоков', scrutiny: 10, note: 'К импорту относятся настороженно'},
-  {through: 1978, id: 'detente', title: 'Разрядка', scrutiny: 2, note: 'Больше культурных обменов'},
-  {through: 1984, id: 'arms', title: 'Гонка вооружений / Афганистан', scrutiny: 15, note: 'Проверки импорта · риск отправки'},
+  {through: 1968, id: 'rivalry', title: 'Застой · Соперничество блоков', scrutiny: 10, note: 'К импорту относятся настороженно'},
+  {through: 1978, id: 'detente', title: 'Застой · Разрядка', scrutiny: 2, note: 'Больше культурных обменов'},
+  {through: 1984, id: 'arms', title: 'Застой · Гонка вооружений', scrutiny: 15, note: 'Проверки импорта · риск отправки в Афганистан'},
   {through: 1989, id: 'reform', title: 'Перестройка', scrutiny: 4, note: 'Послабления для импорта · Афганистан'},
   {through: 1990, id: 'reform', title: 'Перестройка', scrutiny: 0, note: 'Послабления для импорта'},
-  {through: 1991, id: 'collapse', title: 'Распад СССР', scrutiny: 0, note: 'Торговля меняется'},
+  {through: 1991, id: 'collapse', title: 'Перестройка · Распад СССР', scrutiny: 0, note: 'Денежная реформа и переход к новой экономике'},
+  {through: 1999, id: 'post', title: 'Лихие 90-е', scrutiny: 0, note: 'Инфляция и открытая торговля'},
   {through: Infinity, id: 'post', title: 'После холодной войны', scrutiny: 0, note: 'Импорт в открытой продаже'}
 ];
 const worldAt = year => worldPhases.find(phase => year <= phase.through);
@@ -362,6 +435,8 @@ const afghanRisk = (year, connections) => {
   return Math.max(2, base - Math.round(connections * .22));
 };
 const cityName = game => {
+  if (game.year < 1924 && game.city === 'Ленинград') return 'Петроград';
+  if (game.year < 1924 && game.city === 'Свердловск') return 'Екатеринбург';
   if (game.year >= 1991) {
     if (game.city === 'Ленинград') return 'Санкт-Петербург';
     if (game.city === 'Свердловск') return 'Екатеринбург';
@@ -374,9 +449,19 @@ const soul = (label, effects, outcome) => ({kind: 'soul', label, effects, outcom
 const special = (label, effects, outcome, unlock = {}) => ({kind: 'special', label, effects, outcome, unlock});
 const risk = (label, base, stat, success, failure, goodText, badText, weight = .5) =>
   ({kind: 'risk', label, chance: {base, stat, weight}, success, failure, goodText, badText});
+function statePressure(game, type) {
+  if (!type) return 0;
+  if (game.year === 1937 || game.year === 1938) {
+    return 15 + Math.round((100 - game.loyalty) * .29 + game.originRisk * .7);
+  }
+  if (game.year >= 1941 && game.year <= 1945) return type === 'market' ? 25 : 21;
+  if (game.year >= 1929 && game.year <= 1952) return 12;
+  if (game.year <= 1920) return type === 'market' ? 13 : 8;
+  return game.year < 1988 && game.year > 1928 ? 4 : 0;
+}
 const chance = (choice, g) =>
   clamp(Math.round(choice.chance.base + g[choice.chance.stat] * choice.chance.weight -
-    (choice.foreign ? worldAt(g.year).scrutiny : 0)), 5, 93);
+    (choice.foreign ? worldAt(g.year).scrutiny : 0) - statePressure(g, choice.danger)), 5, 93);
 const event = (id, minAge, maxAge, minYear, maxYear, title, copy, choices, options = {}) => ({
   id, minAge, maxAge, minYear, maxYear, reqStat: null, category: 'Из жизни', title, copy, choices, ...options
 });
@@ -396,7 +481,8 @@ function parseEffects(spec = '') {
 function catalog(idPrefix, minAge, maxAge, category, riskStat, rows) {
   return rows.trim().split('\n').map((line, index) => {
     const [title, copy, careful, daring, heartfelt, timing = ''] = line.trim().split('|');
-    const [slug, firstYear = '1950', lastYear = '2087', phases, foreign] = timing.split(';');
+    const legacy = !timing;
+    const [slug, firstYear = legacy ? '1917' : '1950', lastYear = '2090', phases, foreign] = timing.split(';');
     const [carefulLabel, carefulEffect, carefulText] = careful.split('~');
     const [riskLabel, success, failure, goodText, badText, base] = daring.split('~');
     const [soulLabel, soulEffect, soulText] = heartfelt.split('~');
@@ -544,7 +630,7 @@ const historical = (year, title, copy, choices) =>
 
 const role = game => {
   if (game.job === 'prisoner') return 'prison';
-  if (game.job === 'soldier') return 'army';
+  if (game.job === 'soldier' || game.job === 'front') return 'army';
   if (lifeAge(game) < 7) return 'home';
   if (lifeAge(game) < 18 || ['student', 'vocational'].includes(game.job)) return 'study';
   return 'work';
@@ -896,11 +982,19 @@ newScenes.forEach(card => {
 });
 
 const lifeMilestones = [
-  event('birth-ward', 0, 0, 1950, 1978, 'В роддоме', game => {
+  event('birth-ward', 0, 0, 1917, 1991, 'В роддоме', game => {
     const opening = 'Первый день жизни. В палате в ' + (game.city === 'Москва' ? 'Москве' : 'родном городе') +
       ' медсестра приносит ребёнка на кормление. Родным предстоит решить, как провести первые дни после выписки.';
     if (game.year === 1961) return opening + ' По радио передают весть о полёте Гагарина.';
     if (game.year === 1962) return opening + ' Родные спорят о тревожных новостях с Кубы.';
+    if (game.year === 1945) return opening + ' По радио звучат вести о Победе.';
+    if (game.year === 1947) return opening + ' В городе обменивают деньги и отменяют карточки.';
+    if (game.year === 1957) return opening + ' В газетах пишут о фестивале в Москве и запуске спутника.';
+    if (game.year === 1980) return opening + ' Семья обсуждает Олимпиаду в Москве.';
+    if (game.year === 1985) return opening + ' По радио сообщают о переменах в руководстве страны.';
+    if (game.year === 1986) return opening + ' Родители ждут подробностей об аварии в Чернобыле.';
+    if (game.year >= 1941 && game.year <= 1945) return opening + ' Семья живёт по карточкам и ждёт писем с фронта.';
+    if (game.year === 1991) return opening + ' За год изменятся деньги и сама страна.';
     return opening;
   }, [
     safe('Договориться о визите участковой сестры', {health: 6, reputation: 4}, 'Участковая сестра помогла наладить уход в первые дни дома.'),
@@ -970,6 +1064,50 @@ const lifeMilestones = [
 ];
 
 const ordinary = [...childhood, ...schoolYears, ...teens, ...youth, ...adulthood, ...laterLife];
+const archiveProfiles = {
+  family: {safe: {health: 4}, win: {happiness: 11, connections: 6}, fail: {money: -22, happiness: -6}},
+  civic: {safe: {loyalty: 4, connections: 3}, win: {reputation: 9, connections: 7}, fail: {reputation: -8, happiness: -6}},
+  scarcity: {safe: {health: 5, money: -11}, win: {money: 110, health: 7}, fail: {health: -11, money: -50}},
+  health: {safe: {health: 7}, win: {health: 11, connections: 5}, fail: {health: -9, money: -36}},
+  study: {safe: {intellect: 5}, win: {intellect: 9, reputation: 7}, fail: {money: -18, happiness: -5}},
+  labor: {safe: {money: 45, intellect: 3}, win: {money: 260, reputation: 9}, fail: {health: -12, money: -84}},
+  market: {safe: {intellect: 3, money: 12}, win: {money: 240, connections: 8}, fail: {money: -120, reputation: -12}},
+  speech: {safe: {loyalty: 6}, win: {reputation: 11, connections: 6}, fail: {loyalty: -17, happiness: -11, reputation: -12}},
+  front: {safe: {health: 7, reputation: 4}, win: {money: 130, reputation: 14, warAward: 1}, fail: {health: -27, happiness: -12, warWound: 1}},
+  bank: {safe: {bankShare: .8, intellect: 4}, win: {reputation: 9, bankShare: .65}, fail: {money: -21, happiness: -5}}
+};
+const archiveEvents = archivalRows.trim().split('\n').map(line => {
+  const [id, years, ages, kind, title, copy, careful, usual, gamble, gain, loss, heartfelt, comfort] = line.split('|');
+  const [minYear, maxYear] = years.split('-').map(Number);
+  const [minAge, maxAge] = ages.split('-').map(Number);
+  const front = kind.startsWith('front');
+  const danger = ['purge', 'speech', 'front-speech'].includes(kind) ? 'speech'
+    : ['market', 'front-market'].includes(kind) ? 'market' : undefined;
+  const profile = archiveProfiles[kind] ?? archiveProfiles[danger ?? 'civic'];
+  const oddsStat = kind === 'front' ? 'health' : danger === 'speech' ? 'loyalty' : kind === 'study' ? 'intellect' : 'connections';
+  const choices = [
+    safe(careful, {reputation: 4, ...profile.safe}, usual),
+    {...risk(gamble, kind === 'front' ? 18 : danger === 'speech' ? 38 : 32, oddsStat, profile.win, profile.fail, gain, loss, .42),
+      danger, foreign: kind === 'festival'},
+    soul(heartfelt, {happiness: 9, money: -8, ...(kind === 'front' ? {health: 3} : {})}, comfort)
+  ];
+  if (kind === 'purge') choices.push(special('Представить свидетельства бывших коллег', {loyalty: 8, reputation: 7, connections: 3},
+    'Показания помогли завершить проверку.', {connections: 68, reputation: 83}));
+  return event('archive-' + id, minAge, maxAge, minYear, maxYear, title, copy, choices, {
+    category: front ? 'Фронт' : kind === 'purge' ? 'Репрессии' : 'Исторические события',
+    priority: ['fixed', 'purge', 'festival'].includes(kind),
+    reqStat: front ? {key: 'job', op: '=', value: 'front'} : null
+  });
+});
+const earlyCareer = event('archive-career', 17, 19, 1917, 1966, 'Первая самостоятельная работа', game => game.year <= 1928
+  ? 'В артели готовы взять ученика, дома ждут помощи с хозяйством, а в городе открыли набор на учёбу.'
+  : 'Нужно выбрать, чему учиться и где работать. У завода есть ученики, в селе нужны руки, а больница ищет помощников.', game => [
+  safe(game.year <= 1928 ? 'Учиться ремеслу в артели' : 'Пойти в ученики при заводе', {job: 'apprentice', intellect: 5, reputation: 5}, 'Наставник взял на оплачиваемое ученичество.'),
+  risk('Поступить на дальнейшую учёбу', 33, 'intellect', {job: 'student', intellect: 8, reputation: 5},
+    {job: 'worker', money: -30, happiness: -5}, 'После отбора удалось получить учебное место.', 'Учебного места не хватило, пришлось устроиться на работу.'),
+  soul('Остаться с родными и работать в хозяйстве', {job: 'farm', happiness: 9, health: 3}, 'Близкие вместе взялись за хозяйство.'),
+  safe('Устроиться в больницу и учиться уходу', {job: 'nurse', reputation: 7, intellect: 4}, 'Старшая сестра приняла нового работника на обучение.')
+], {category: 'Выбор профессии', priority: true, reqStat: {key: 'job', op: '=', value: 'school'}});
 const situationOptions = {
   'Семья решает': ['Попросить помощи у родни', {connections: 5, money: 6, happiness: 4}, 'Родные помогли и избавили семью от лишних хлопот.'],
   'Школьные годы': ['Обратиться к любимому учителю', {intellect: 5, reputation: 4, happiness: 4}, 'Учитель нашёл время помочь и кое-что объяснить.'],
@@ -983,7 +1121,7 @@ ordinary.forEach((card, index) => {
 });
 
 const action = (id, minAge, maxAge, choice, jobsOnly = [], options = {}) =>
-  ({id, minAge, maxAge, minYear: 1950, maxYear: 2087, reqStat: null, choice, jobsOnly, ...options});
+  ({id, minAge, maxAge, minYear: 1917, maxYear: 2090, reqStat: null, choice, jobsOnly, ...options});
 const pastimes = [
   action('stories', 0, 8, soul('Послушать семейные сказки', {happiness: 8, intellect: 4, money: -2}, 'Разговоры за сказками стали любимым делом семьи.')),
   action('park', 0, 99, soul('Погулять в парке', {health: 5, happiness: 7, money: -4}, 'Прогулка помогла отдохнуть.')),
@@ -992,7 +1130,7 @@ const pastimes = [
   action('porter', 16, 69, risk('Подработать грузчиком', 37, 'health', {money: 170, health: -4}, {money: 25, health: -11, happiness: -4},
     'Оплатили всю смену.', 'Смена закончилась ушибом и небольшой оплатой.')),
   action('market', 16, 99, {...risk('Достать дефицит у спекулянта', 32, 'connections', {money: -42, happiness: 14, connections: 4},
-    {money: -100, reputation: -9, happiness: -5}, 'Нужную вещь удалось достать.', 'Вещь оказалась с браком, оплату не вернули.'), foreign: true}, [], {maxYear: 1993}),
+    {money: -100, reputation: -9, happiness: -5}, 'Нужную вещь удалось достать.', 'Вещь оказалась с браком, оплату не вернули.'), foreign: true, danger: 'market'}, [], {maxYear: 1993}),
   action('neighbors', 0, 99, safe('Помочь соседям', {reputation: 4, connections: 5, money: -3}, 'Соседи запомнили помощь и предложили поддержать в ответ.')),
   action('compost', 0, 99, soul('Ухаживать за клумбой', {happiness: 8, health: 4, money: -4}, 'За окном стало чуть зеленее.')),
   action('care', 12, 99, safe('Зайти на профилактический осмотр', {health: 9, reputation: 2, money: -28}, 'Появился простой план, как беречь силы.')),
@@ -1001,9 +1139,9 @@ const pastimes = [
   action('jail-books', 18, 99, safe('Почитать в библиотеке', {intellect: 5, reputation: 3}, 'Книгу удалось дочитать до вечернего отбоя.'), ['prisoner']),
   action('jail-letters', 18, 99, soul('Написать письмо домой', {happiness: 8, money: -4}, 'Письмо забрали с вечерней почтой.'), ['prisoner']),
   action('jail-walk', 18, 99, safe('Выйти на прогулку', {health: 5, happiness: 4}, 'Во дворе получилось немного размяться.'), ['prisoner']),
-  action('army-books', 18, 29, safe('Почитать в клубе части', {intellect: 5, reputation: 3}, 'В клубе нашёлся интересный журнал.'), ['soldier']),
-  action('army-letters', 18, 29, soul('Написать домой', {happiness: 9, money: -4}, 'Вскоре пришёл ответ из дома.'), ['soldier']),
-  action('army-sport', 18, 29, safe('Потренироваться с товарищами', {health: 5, connections: 4}, 'После тренировки договорились повторить.'), ['soldier']),
+  action('army-books', 18, 60, safe('Почитать старую газету', {intellect: 5, reputation: 3}, 'В газете нашлась интересная заметка.'), ['soldier', 'front']),
+  action('army-letters', 18, 60, soul('Написать домой', {happiness: 9, money: -4}, 'Вскоре пришёл ответ из дома.'), ['soldier', 'front']),
+  action('army-sport', 18, 60, safe('Отдохнуть с товарищами', {health: 5, connections: 4}, 'После разговора сил стало больше.'), ['soldier', 'front']),
   action('queue', 7, 99, risk('Постоять в очереди за дефицитом', 46, 'connections', {money: 65, happiness: 7},
     {money: -11, happiness: -4}, 'К закрытию магазина на складе ещё оставался нужный товар.', 'Товар разобрали за несколько покупателей до кассы.'), [], {maxYear: 1993}),
   action('cinema', 5, 99, soul('Сходить в кино', {happiness: 10, money: -9}, 'После фильма ещё долго обсуждали последнюю сцену.')),
@@ -1023,12 +1161,43 @@ const freeScenarios = [
   {ids: ['army-books', 'army-letters', 'army-sport'], copy: 'После дежурства осталось немного свободного времени.'}
 ];
 
-const allEvents = [...milestones, ...ordinary, ...service, ...custody, ...opportunities, ...newScenes, ...lifeMilestones];
+const allEvents = [...milestones, ...ordinary, ...service, ...custody, ...opportunities, ...newScenes, ...lifeMilestones, earlyCareer, ...archiveEvents];
 const byId = Object.fromEntries(allEvents.map(card => [card.id, card]));
 const ordinaryIds = new Set([...ordinary, ...newScenes].map(card => card.id));
+const archiveIds = new Set(archiveEvents.map(card => card.id));
+const legacyDangers = {farce: 'market', samizdat: 'speech', 'midlife-typescripts': 'speech'};
 const legacyOpportunityIds = new Set(opportunities.map(card => card.id));
 const actionsById = Object.fromEntries(pastimes.map(activity => [activity.id, activity.choice]));
-const inflationRates = {1991: .63, 1992: .36, 1993: .49, 1994: .60, 1995: .73, 1996: .88, 1997: .92, 1998: .57, 1999: .78};
+const inflationRates = {1991: .63, 1992: .12, 1993: .32, 1994: .52, 1995: .73, 1996: .88, 1997: .92, 1998: .57, 1999: .78};
+const priceScale = year => year < 1961 ? 10 : 1;
+const cents = amount => Math.round(amount * 100) / 100;
+
+function applyMoneyReforms(game) {
+  if (lifeAge(game) === 0) return;
+  const before = game.money;
+  if (game.year === 1947) {
+    const savings = Math.max(0, before);
+    const deposits = Math.round(savings * game.bankShare);
+    const cash = savings - deposits;
+    const protectedDeposit = Math.min(deposits, 3000) + clamp(deposits - 3000, 0, 7000) * 2 / 3 +
+      Math.max(0, deposits - 10000) / 2;
+    if (before > 0) game.money = cents(cash / 10 + protectedDeposit);
+    note(game, 'Денежная реформа 1947 года', 'Наличные обменяли 10:1, вклады пересчитали отдельно. ' +
+      currency(before) + ' → ' + currency(game.money) + '. Карточное снабжение отменили.');
+  } else if (game.year === 1961) {
+    game.money = cents(before / 10);
+    game.peakMoney = cents(game.peakMoney / 10);
+    game.totalIncome = cents(game.totalIncome / 10);
+    note(game, 'Деноминация 1961 года', 'Сбережения, цены и выплаты пересчитаны 10:1. ' +
+      currency(before) + ' → ' + currency(game.money) + '.');
+  } else if (game.year === 1991) {
+    const largeNotes = Math.round(Math.max(0, before) * (1 - game.bankShare) * .34);
+    const exchanged = Math.min(largeNotes, 1000) + Math.round(Math.max(0, largeNotes - 1000) * .25);
+    game.money -= largeNotes - exchanged;
+    note(game, 'Павловская реформа', 'Купюры 50 и 100 рублей старого образца обменяли с ограничениями. Потеря при обмене: ' +
+      currency(largeNotes - exchanged) + '.');
+  }
+}
 
 function matches(requirement, game) {
   if (!requirement) return true;
@@ -1052,21 +1221,23 @@ function eligible(card, game) {
 function note(game, title, detail = '') {
   game.history.push({year: game.year, title, detail});
 }
-function newGame() {
+function newGame(birth) {
   const sex = pick(['m', 'f']);
-  const birth = rand(1950, 1978);
-  const family = pick(backgrounds);
+  const family = pick(familiesAt(birth));
+  const initialMoney = family.money * priceScale(birth);
   const game = {
     sex, firstName: pick(names[sex]), surname: pick(surnames)[sex === 'm' ? 0 : 1], city: pick(cities),
-    family: family.name, birth, year: birth, job: 'child', money: family.money,
+    family: family.name, birth, year: birth, job: 'child', money: initialMoney,
     reputation: family.reputation, connections: family.connections, intellect: family.intellect,
-    health: rand(77, 95), happiness: rand(57, 74), peakMoney: family.money, totalIncome: 0, annualIncome: 0,
+    loyalty: family.loyalty ?? 56, originRisk: family.originRisk ?? 0, bankShare: .35,
+    health: rand(77, 95), happiness: rand(57, 74), peakMoney: initialMoney, totalIncome: 0, annualIncome: 0,
     prisonUntil: 0, demobYear: 0, graduationYear: 0, draftYear: 0, draftChecked: false,
     deployedYear: null, deploymentRollYear: 0, career: ['child'], history: [], usedEvents: [],
+    warServiceYear: null, warFormerJob: null, warWounds: 0, warAwards: 0, penalService: false,
     riskWins: 0, riskLosses: 0, arrests: 0, persecuted: false, decisions: 0, freeActions: 0,
     endReason: '', awards: [], turn: null
   };
-  note(game, 'Рождение в роддоме', game.city + ' · Семья: ' + game.family.toLowerCase());
+  note(game, 'Рождение в роддоме', cityName(game) + ' · Семья: ' + game.family.toLowerCase());
   startYear(game);
   return game;
 }
@@ -1076,6 +1247,7 @@ function setJob(game, job) {
   if (!game.career.includes(job)) game.career.push(job);
   if (job === 'student') game.graduationYear = Math.max(game.year + 3, game.birth + 21);
   if (job === 'vocational') game.graduationYear = Math.max(game.year + 2, game.birth + 18);
+  if (job === 'apprentice') game.graduationYear = game.year + 2;
   if (job === 'soldier') {
     game.demobYear = game.year + rand(1, 2);
     game.draftYear = 0;
@@ -1094,13 +1266,18 @@ function updateJob(game) {
     change(age >= 60 ? 'retiree' : 'unemployed', 'Срок закончился. Началась жизнь на свободе.');
     return;
   }
+  if (game.job === 'front') {
+    if (game.year <= 1945) return;
+    change(age >= 60 ? 'retiree' : game.warFormerJob === 'nurse' ? 'nurse' : 'worker', 'Служба закончилась. Началась демобилизация.');
+    return;
+  }
   if (age >= 60 && game.job !== 'retiree') {
     change('retiree', 'Оформлена пенсия.');
   } else if (age === 7) {
     change('school', 'Начались школьные занятия.');
   } else if (game.draftYear && game.year >= game.draftYear) {
     change('soldier', 'Началась срочная служба.');
-  } else if (age >= 18 && game.job === 'school' && (age > 19 || hadEvent(game, 'career-route'))) {
+  } else if (age >= 18 && game.job === 'school' && (age > 19 || hadEvent(game, 'career-route') || hadEvent(game, 'archive-career'))) {
     if (game.intellect >= 56 && game.reputation >= 34) {
       change('student', 'После школы удалось поступить на учёбу.');
     } else if (game.sex === 'm' && game.health >= 48 && Math.random() < .72) {
@@ -1113,6 +1290,8 @@ function updateJob(game) {
     change(game.intellect >= 59 ? 'engineer' : 'worker', 'Учёба закончилась. Диплом помог найти работу.');
   } else if (game.job === 'vocational' && game.year >= game.graduationYear) {
     change('worker', 'ПТУ окончено. Мастер помог устроиться на работу по специальности.');
+  } else if (game.job === 'apprentice' && game.year >= game.graduationYear) {
+    change(game.year <= 1928 ? 'farm' : 'worker', 'Ученичество закончено. Наставник помог получить самостоятельную работу.');
   } else if (game.job === 'soldier' && game.year >= game.demobYear) {
     change('worker', 'Служба закончилась. Нашлась работа на гражданке.');
   } else if (game.job === 'unemployed' && game.reputation >= 28) {
@@ -1121,6 +1300,33 @@ function updateJob(game) {
   if (!game.draftChecked && game.sex === 'm' && age >= 18 && age <= 22 && ['worker', 'engineer', 'unemployed'].includes(game.job)) {
     game.draftChecked = true;
     if (game.health >= 48 && Math.random() < .29) change('soldier', 'Пришла повестка. Началась срочная служба.');
+  }
+}
+function checkWarService(game) {
+  const age = lifeAge(game);
+  if (game.year < 1941 || game.year > 1945 || age < 18 || age > 50 || ['prisoner', 'front'].includes(game.job)) return;
+  const medic = game.job === 'nurse';
+  const odds = medic ? .47 : game.sex === 'm' ? (game.year <= 1942 ? .56 : game.year <= 1944 ? .34 : .14) : 0;
+  if (!odds || Math.random() >= odds) return;
+  game.warServiceYear ??= game.year;
+  game.warFormerJob = game.job;
+  game.draftYear = 0;
+  game.draftChecked = true;
+  setJob(game, 'front');
+  note(game, 'Мобилизация на фронт', medic ? 'Последовало назначение в санитарную часть.' : 'Из военкомата пришла повестка. Повседневная жизнь осталась в тылу.');
+}
+function resolveFrontYear(game) {
+  if (game.job !== 'front') return;
+  game.health = clamp(game.health - 3, 0, 100);
+  game.happiness = clamp(game.happiness - 4, 0, 100);
+  if (Math.random() < (game.penalService ? .41 : .23)) {
+    game.health = clamp(game.health - rand(10, 21), 0, 100);
+    game.warWounds++;
+    note(game, 'Ранение на фронте', 'После ранения потребовалось лечение.');
+  } else if (Math.random() < .13) {
+    game.warAwards++;
+    game.reputation = clamp(game.reputation + 7, 0, 100);
+    note(game, 'Награждение', 'Награду за службу внесли в личное дело.');
   }
 }
 function checkDeployment(game) {
@@ -1136,10 +1342,15 @@ function checkDeployment(game) {
 }
 function chooseCard(game) {
   const pool = allEvents.filter(card => !game.usedEvents.includes(card.id) && eligible(card, game));
-  const fixed = pool.find(card => card.historical || card.priority);
-  if (fixed) return fixed;
-  const restricted = {prisoner: 'Под стражей', soldier: 'Военная служба'}[game.job];
+  if (lifeAge(game) === 0) return byId['birth-ward'];
+  const milestone = pool.find(card => card.historical);
+  if (milestone) return milestone;
+  const fixed = pool.filter(card => card.priority && !(game.job === 'prisoner' && card.id === 'archive-purge-file'));
+  if (fixed.length) return pick(fixed);
+  const restricted = {prisoner: 'Под стражей', soldier: 'Военная служба', front: 'Фронт'}[game.job];
   if (restricted) return pick(pool.filter(card => card.category === restricted)) ?? pick(pool.filter(card => ordinaryIds.has(card.id)));
+  const early = pool.filter(card => archiveIds.has(card.id));
+  if (early.length && Math.random() < .92) return pick(early);
   const dated = pool.filter(card => card.minYear === card.maxYear);
   if (dated.length) return pick(dated);
   const periodCards = pool.filter(card => legacyOpportunityIds.has(card.id) || card.phases || card.maxYear - card.minYear < 15);
@@ -1167,6 +1378,7 @@ function earnedAwards(game) {
     [milestones.every(card => game.usedEvents.includes(card.id)), 'Свидетель эпохи']
   ];
   const lasting = awards.slice(0, 5).filter(([earned]) => earned).map(([, title]) => title);
+  if (game.warServiceYear != null) lasting.push('Ветеран Великой Отечественной');
   if (game.deployedYear != null) lasting.push('Ветеран Афганистана');
   const other = shuffle(awards.slice(5).filter(([earned]) => earned).map(([, title]) => title));
   return [...lasting, ...other.slice(0, Math.max(0, 6 - lasting.length)), pick(['Память двора', 'Строка в архиве', 'Голос поколения'])];
@@ -1184,24 +1396,27 @@ function checkEnd(game) {
 function startYear(game) {
   game.turn = null;
   updateJob(game);
+  checkWarService(game);
   checkDeployment(game);
   const age = lifeAge(game);
-  if (age > 0 && worldAt(game.year).id !== worldAt(game.year - 1).id) {
+  if (age > 0 && worldAt(game.year).title !== worldAt(game.year - 1).title) {
     const phase = worldAt(game.year);
     note(game, phase.title, phase.note + '.');
   }
-  const rate = inflationRates[game.year];
+  applyMoneyReforms(game);
+  const rate = age > 0 ? inflationRates[game.year] : undefined;
   if (rate) {
     const loss = Math.round(Math.max(0, game.money) * (1 - rate));
     game.money -= loss;
-    note(game, game.year === 1991 ? 'Обесценивание сбережений' : 'Инфляция', 'Накопления потеряли ' + currency(loss) + ' покупательной силы.');
+    note(game, game.year === 1991 ? 'Обесценивание сбережений' : game.year <= 1994 ? 'Гиперинфляция' : 'Инфляция',
+      'Накопления потеряли ' + currency(loss) + ' покупательной силы.');
   }
-  const income = Math.round(jobs[game.job].income * (rate ? .48 + rate * .52 : 1));
+  const income = Math.round(jobs[game.job].income * priceScale(game.year) * (rate ? .48 + rate * .52 : 1));
   const expenses = Math.round(income * (age < 18 ? .46 : .87));
   game.annualIncome = income;
   game.annualJob = game.job;
-  game.totalIncome += income;
-  game.money += income - expenses;
+  game.totalIncome = cents(game.totalIncome + income);
+  game.money = cents(game.money + income - expenses);
   game.peakMoney = Math.max(game.money, game.peakMoney);
   if (game.job === 'prisoner') {
     game.happiness = clamp(game.happiness - 5, 0, 100);
@@ -1211,6 +1426,7 @@ function startYear(game) {
     game.happiness = clamp(game.happiness - 3, 0, 100);
     game.health = clamp(game.health - 2, 0, 100);
   }
+  resolveFrontYear(game);
   if (game.money < 0) game.happiness = clamp(game.happiness - 3, 0, 100);
   if (age > 60) game.health = clamp(game.health - rand(1, 3), 0, 100);
   if (age >= 19) game.happiness = clamp(game.happiness - rand(1, age > 60 ? 3 : 4), 0, 100);
@@ -1224,7 +1440,7 @@ function startYear(game) {
     ...drawPastimes(game), result: null, activityResult: null};
 }
 function drawPastimes(game) {
-  const restricted = ['prisoner', 'soldier'].includes(game.job);
+  const restricted = ['prisoner', 'soldier', 'front'].includes(game.job);
   const available = pastimes.filter(activity => eligible(activity, game) &&
     (restricted ? activity.jobsOnly.includes(game.job) : !activity.jobsOnly.length));
   const scenarios = freeScenarios.filter(scene => available.some(activity => scene.ids.includes(activity.id)));
@@ -1246,8 +1462,22 @@ function arrest(game, years) {
   game.happiness = clamp(game.happiness - 9, 0, 100);
   return 'Приговор: ' + ageLabel(years) + ' под стражей.';
 }
+function punishRisk(game, danger) {
+  if (!danger) return '';
+  if (game.year === 1937 || game.year === 1938) {
+    game.persecuted = true;
+    return 'Дело передали органам. ' + arrest(game, rand(4, 8));
+  }
+  if (game.year < 1941 || game.year > 1945) return '';
+  if (game.job === 'front' && game.year >= 1942) {
+    game.penalService = true;
+    game.happiness = clamp(game.happiness - 14, 0, 100);
+    return 'По приговору последовал перевод в штрафное подразделение. Риск ранения вырос.';
+  }
+  return 'Наказание усилили по правилам военного времени. ' + arrest(game, rand(2, 5));
+}
 function resolveChoice(game, choice, activity = false) {
-  const before = Object.fromEntries([...stats, ['intellect']].map(([key]) => [key, game[key]]));
+  const before = Object.fromEntries([...stats, ...extraStats].map(([key]) => [key, game[key]]));
   const oldJob = game.job;
   const isRisk = choice.kind === 'risk';
   const odds = isRisk ? chance(choice, game) : null;
@@ -1269,7 +1499,10 @@ function resolveChoice(game, choice, activity = false) {
       lines.push('Из-за надзора за импортом последствия оказались строже.');
     }
   }
-  game.money += effects.money ?? 0;
+  game.money = cents(game.money + (effects.money ?? 0) * priceScale(game.year));
+  if (effects.bankShare != null) game.bankShare = effects.bankShare;
+  game.warWounds += effects.warWound ?? 0;
+  game.warAwards += effects.warAward ?? 0;
   game.peakMoney = Math.max(game.peakMoney, game.money);
   if (effects.job === 'soldier' && lifeAge(game) < 18) {
     game.draftYear = game.birth + 18;
@@ -1278,12 +1511,15 @@ function resolveChoice(game, choice, activity = false) {
     setJob(game, effects.job);
   }
   if (effects.persecution) game.persecuted = true;
-  if (effects.arrest) {
+  const punishment = success ? '' : punishRisk(game, choice.danger);
+  if (punishment) {
+    lines.push(punishment);
+  } else if (effects.arrest) {
     lines.push(arrest(game, effects.arrest));
   } else if (game.reputation < 10 && game.job !== 'prisoner') {
     if (lifeAge(game) < 18) {
       lines.push(arrest(game, 1));
-    } else if (['worker', 'engineer', 'cooperator', 'soldier', 'student', 'vocational'].includes(game.job) && Math.random() < .68) {
+    } else if (['worker', 'engineer', 'cooperator', 'soldier', 'student', 'vocational', 'apprentice', 'farm', 'nurse'].includes(game.job) && Math.random() < .68) {
       setJob(game, 'unemployed');
       game.reputation = 13;
       lines.push('За испорченную репутацию исключили или уволили по статье. Следующая выплата будет меньше.');
@@ -1291,19 +1527,21 @@ function resolveChoice(game, choice, activity = false) {
       lines.push(arrest(game, rand(1, 2)));
     }
   }
-  const delta = [...stats, ['intellect']].flatMap(([key]) => {
-    const difference = game[key] - before[key];
+  const delta = [...stats, ...extraStats].flatMap(([key]) => {
+    const difference = cents(game[key] - before[key]);
     if (!difference) return [];
     const value = key === 'money' ? currency(Math.abs(difference)) : String(Math.abs(difference));
     return [statLabels[key] + ' ' + (difference > 0 ? '+' : '−') + value];
   });
   if (oldJob !== game.job) {
     delta.push('Статус: ' + jobName(game));
-    const restricted = ['prisoner', 'soldier'];
+    const restricted = ['prisoner', 'soldier', 'front'];
     if (!game.turn.freeUsed && restricted.some(job => job === oldJob || job === game.job)) {
       Object.assign(game.turn, drawPastimes(game));
     }
   }
+  if (effects.warAward) delta.push('Награды +' + effects.warAward);
+  if (effects.warWound) delta.push('Ранения +' + effects.warWound);
   if (isRisk) delta.push('Кубик: ' + roll + ' из 100 при шансе ' + odds + '%');
   const summary = lines.filter(Boolean).join(' ');
   const detail = delta.join(' · ');
@@ -1313,6 +1551,8 @@ function resolveChoice(game, choice, activity = false) {
 }
 
 const nodes = Object.fromEntries([
+  'creation', 'birth-form', 'birth-year', 'birth-slider', 'birth-presets', 'birth-preview', 'birth-random', 'resume-button', 'change-year',
+  'profile', 'chronicle', 'loyalty',
   'stamp-state', 'monogram', 'person-name', 'person-note', 'date-year', 'date-note', 'stats', 'income', 'intellect', 'scene',
   'world', 'world-phase', 'world-detail',
   'scene-type', 'scene-title', 'scene-copy', 'decision-detail', 'choices', 'free-button', 'free-note', 'next-button',
@@ -1329,6 +1569,17 @@ function load() {
       saved.draftChecked ??= lifeAge(saved) >= 18;
       saved.deployedYear ??= null;
       saved.deploymentRollYear ??= 0;
+      if (saved.loyalty == null && saved.year < 1961) {
+        for (const key of ['money', 'peakMoney', 'annualIncome', 'totalIncome']) saved[key] *= 10;
+      }
+      saved.loyalty ??= 56;
+      saved.originRisk ??= 0;
+      saved.bankShare ??= .35;
+      saved.warServiceYear ??= null;
+      saved.warFormerJob ??= null;
+      saved.warWounds ??= 0;
+      saved.warAwards ??= 0;
+      saved.penalService ??= false;
       if (saved.turn) {
         saved.turn.choiceOrder ??= shuffle([0, 1, 2, 3]);
         saved.turn.freeCopy ??= 'На сегодня осталось время для одного свободного занятия.';
@@ -1338,7 +1589,7 @@ function load() {
   } catch {
     // Браузер может отключить хранилище для локальных файлов.
   }
-  return newGame();
+  return null;
 }
 function save(game) {
   try {
@@ -1377,12 +1628,14 @@ function drawStats(game) {
   const source = jobs[game.annualJob].source;
   nodes.income.textContent = source ? source + ' за год · ' + currency(game.annualIncome) : 'За этот год выплат не было';
   nodes.intellect.textContent = 'Интеллект · ' + game.intellect;
+  nodes.loyalty.textContent = 'Лояльность · ' + game.loyalty;
   const phase = worldAt(game.year);
   nodes.world.classList.toggle('high', phase.scrutiny >= 10);
   nodes['world-phase'].textContent = phase.title;
   const prospectiveYear = Math.max(game.year, game.birth + 18);
   const odds = lifeAge(game) >= 17 && lifeAge(game) <= 22 ? afghanRisk(prospectiveYear, game.connections) : 0;
-  nodes['world-detail'].textContent = onDeployment(game) ? 'Место службы · Афганистан'
+  nodes['world-detail'].textContent = game.job === 'front' && game.penalService ? 'Место службы · Штрафное подразделение'
+    : onDeployment(game) ? 'Место службы · Афганистан'
     : odds && game.deployedYear == null && game.job !== 'prisoner'
       ? phase.note + ' · Назначение в Афганистан при службе ' + odds + '%'
       : phase.note;
@@ -1424,7 +1677,7 @@ function drawTimeline(game) {
 function availableChoices(game) {
   const card = byId[game.turn.cardId];
   let choices = typeof card.choices === 'function' ? card.choices(game) : card.choices;
-  if (['prisoner', 'soldier'].includes(game.job) && ordinaryIds.has(card.id)) {
+  if (['prisoner', 'soldier', 'front'].includes(game.job) && ordinaryIds.has(card.id)) {
     choices = [
       safe('Ответить и подсказать, что делать', {reputation: 5, intellect: 3}, 'Близкие воспользовались советом.'),
       risk('Попросить связаться с давним знакомым', 30, 'connections', {connections: 6, money: 85}, {happiness: -5, money: -25},
@@ -1434,7 +1687,9 @@ function availableChoices(game) {
   }
   return game.turn.choiceOrder.map(index => choices[index])
     .filter(choice => choice && (choice.kind !== 'special' || canUnlock(choice, game)))
-    .map(choice => card.foreign && choice.kind === 'risk' ? {...choice, foreign: true} : choice);
+    .map(choice => choice.kind === 'risk' && (card.foreign || legacyDangers[card.id])
+      ? {...choice, foreign: card.foreign || choice.foreign, danger: legacyDangers[card.id] ?? choice.danger}
+      : choice);
 }
 function canUnlock(choice, game) {
   const {connections, reputation, past} = choice.unlock ?? {};
@@ -1448,8 +1703,8 @@ function canUnlock(choice, game) {
 function drawScene(game) {
   const turn = game.turn;
   const card = byId[turn.cardId];
-  const lockedContext = ['prisoner', 'soldier'].includes(game.job) && ordinaryIds.has(card.id);
-  nodes.scene.classList.toggle('historical', Boolean(card.historical));
+  const lockedContext = ['prisoner', 'soldier', 'front'].includes(game.job) && ordinaryIds.has(card.id);
+  nodes.scene.classList.toggle('historical', Boolean(card.historical || archiveIds.has(card.id)));
   nodes['scene-type'].textContent = turn.result ? 'Решение принято' : lockedContext ? 'Новости из дома' : card.category;
   nodes['scene-title'].textContent = turn.result?.label ?? card.title;
   const copy = typeof card.copy === 'function' ? card.copy(game) : card.copy;
@@ -1484,6 +1739,9 @@ function drawReport(game) {
     ['Арестов', game.arrests]
   ];
   if (game.deployedYear != null) report.push(['Служба в Афганистане с', game.deployedYear]);
+  if (game.warServiceYear != null) {
+    report.push(['Мобилизация', game.warServiceYear], ['Ранения на фронте', game.warWounds], ['Награды за службу', game.warAwards]);
+  }
   nodes['recap-stats'].replaceChildren(...report.map(([label, value]) => {
     const row = element('div');
     row.append(element('dt', '', label), element('dd', '', value));
@@ -1493,6 +1751,9 @@ function drawReport(game) {
 }
 function render(focus = false) {
   const ended = Boolean(game.endReason);
+  nodes.creation.hidden = true;
+  nodes.profile.hidden = false;
+  nodes.chronicle.hidden = false;
   drawStats(game);
   drawTimeline(game);
   nodes['stamp-state'].textContent = ended ? 'ДЕЛО ЗАКРЫТО' : 'ДЕЛО ОТКРЫТО';
@@ -1521,6 +1782,53 @@ function choosePastime(id) {
 }
 
 let game = load();
+const birthInput = nodes['birth-year'];
+const birthSlider = nodes['birth-slider'];
+function updateBirthPreview() {
+  if (!birthInput.validity.valid) {
+    nodes['birth-preview'].textContent = 'Введите год от 1917 до 1991.';
+    return;
+  }
+  const year = birthInput.valueAsNumber;
+  birthSlider.value = String(year);
+  nodes['birth-preview'].textContent = worldAt(year).title + '. Семья по жребию: ' +
+    familiesAt(year).map(family => family.name.toLowerCase()).join(', ') + '. После школы возможны ' +
+    professionsAt(year + 17).join(', ') + '.' +
+    (game && !game.endReason ? ' Начало новой жизни заменит текущее досье.' : '');
+}
+function selectBirthYear(year) {
+  birthInput.value = String(year);
+  updateBirthPreview();
+}
+function showCreation() {
+  nodes.creation.hidden = false;
+  nodes.profile.hidden = true;
+  nodes.scene.hidden = true;
+  nodes.recap.hidden = true;
+  nodes.chronicle.hidden = true;
+  nodes['stamp-state'].textContent = 'НОВОЕ ДОСЬЕ';
+  nodes['resume-button'].hidden = !game;
+  updateBirthPreview();
+  nodes.creation.focus();
+}
+nodes['birth-presets'].replaceChildren(...birthPresets.map(([title, first, last]) => {
+  const button = element('button', 'action', title + ' (' + first + '–' + last + ')');
+  button.type = 'button';
+  button.addEventListener('click', () => selectBirthYear(Math.floor((first + last) / 2)));
+  return button;
+}));
+birthInput.addEventListener('input', updateBirthPreview);
+birthSlider.addEventListener('input', () => selectBirthYear(birthSlider.valueAsNumber));
+nodes['birth-random'].addEventListener('click', () => selectBirthYear(rand(1917, 1991)));
+nodes['resume-button'].addEventListener('click', () => render(true));
+nodes['change-year'].addEventListener('click', showCreation);
+nodes['birth-form'].addEventListener('submit', input => {
+  input.preventDefault();
+  if (!birthInput.reportValidity()) return;
+  game = newGame(birthInput.valueAsNumber);
+  render(true);
+  window.scrollTo(0, 0);
+});
 nodes['next-button'].addEventListener('click', () => {
   if (game.endReason || !game.turn.result) return;
   game.year++;
@@ -1535,12 +1843,9 @@ nodes['free-button'].addEventListener('click', () => {
     choiceButton(game, actionsById[id], () => choosePastime(id))));
   nodes['free-dialog'].showModal();
 });
-nodes['restart-button'].addEventListener('click', () => {
-  game = newGame();
-  render(true);
-  window.scrollTo(0, 0);
-});
-render();
+nodes['restart-button'].addEventListener('click', showCreation);
+if (game) render();
+else showCreation();
 
 </script>
 </body>
