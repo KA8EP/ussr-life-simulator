@@ -1,0 +1,1547 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f4ecd8">
+<title>Личное дело — симулятор жизни в СССР</title>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #f4ecd8;
+    --white-paper: #faf4e5;
+    --canvas: #eae0c8;
+    --ink: #232e3e;
+    --muted: #59584d;
+    --red: #972e25;
+    --rule: #bfb298;
+    --faint-rule: #d8cbb1;
+    --green: #4b634b;
+    --mono: 'Courier New', 'Liberation Mono', monospace;
+    --title: Georgia, 'Times New Roman', serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, #624c2710 4px, transparent 5px),
+      radial-gradient(ellipse at 50% 3%, #f4eddb, var(--canvas) 75%);
+    color: var(--ink);
+    font: 1rem/1.4 var(--mono);
+  }
+  button { font: inherit; }
+  button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--red);
+    outline-offset: 3px;
+  }
+  button:disabled { cursor: default; }
+  [hidden] { display: none !important; }
+  .masthead {
+    border-top: 4px solid var(--red);
+    border-bottom: 1px solid var(--rule);
+    background: #f4ecd8dd;
+  }
+  .masthead-inner {
+    max-width: 900px;
+    min-height: 46px;
+    margin: auto;
+    padding: 6px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .archive-brand { display: flex; align-items: center; gap: 9px; font-size: .82rem; font-weight: bold; letter-spacing: .11em; }
+  .archive-icon { display: grid; place-items: center; width: 23px; height: 23px; border: 1px solid var(--red); color: var(--red); font-size: .88rem; }
+  .masthead-note { color: var(--muted); font-size: .76rem; text-align: right; }
+  .sheet {
+    max-width: 852px;
+    margin: 24px auto 32px;
+    padding: 24px 31px 22px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    box-shadow: 0 3px 0 #d1c3a6, 0 7px 0 -2px #f2ead6, 0 13px 25px #54432915;
+  }
+  .cover {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 3px double var(--ink);
+    padding-bottom: 14px;
+  }
+  .eyebrow { margin: 0 0 2px; color: var(--red); font-size: .76rem; font-weight: bold; letter-spacing: .11em; text-transform: uppercase; }
+  h1, h2, h3, p, dl, dd { margin: 0; }
+  h1 { font: bold clamp(2.15rem, 7vw, 3.65rem)/.99 var(--title); text-transform: uppercase; letter-spacing: -.035em; }
+  .cover-note { margin-top: 6px; color: var(--muted); font-size: .82rem; }
+  .stamp {
+    flex: none;
+    padding: 5px 9px 4px;
+    margin: 2px 4px 0 0;
+    border: 3px double var(--red);
+    color: var(--red);
+    font-weight: bold;
+    text-align: center;
+    font-size: .75rem;
+    letter-spacing: .06em;
+    line-height: 1.21;
+    transform: rotate(-7deg);
+  }
+  .stamp small { display: block; font-size: .63rem; letter-spacing: .12em; }
+  .identity { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 15px; padding: 13px 0; }
+  .person { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .monogram {
+    flex: none; display: grid; place-items: center; width: 48px; height: 48px;
+    border: 1px solid var(--rule); outline: 1px solid var(--faint-rule); outline-offset: -4px;
+    background: #e8dcc1; color: var(--red); font: bold 1.2rem var(--title);
+  }
+  .person-name { font: bold 1.36rem/1.12 var(--title); overflow-wrap: anywhere; }
+  .person-note { margin-top: 3px; color: var(--muted); font-size: .77rem; }
+  .date-card { padding-left: 14px; border-left: 1px solid var(--rule); text-align: right; }
+  .date-year { color: var(--red); font-size: 1.4rem; font-weight: bold; line-height: 1; white-space: nowrap; }
+  .date-note { margin-top: 4px; font-size: .78rem; font-weight: bold; }
+  .stats {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px;
+    border: 1px solid var(--rule); background: var(--rule);
+  }
+  .stat { padding: 7px 9px; background: #efe4ca; min-width: 0; }
+  .stat-label { display: block; color: var(--muted); font-size: .72rem; }
+  .stat-value { display: block; font-size: 1.02rem; font-weight: bold; line-height: 1.25; overflow-wrap: anywhere; }
+  .meter { height: 3px; margin-top: 4px; background: #d8c9a9; }
+  .meter-fill { display: block; height: 100%; background: var(--ink); }
+  .meter-fill.low { background: var(--red); }
+  .ledger { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3px 12px; margin-top: 4px; color: var(--muted); font-size: .72rem; }
+  .world {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 3px 14px;
+    margin-top: 7px; padding: 6px 8px; border: 1px solid var(--faint-rule); border-left: 3px solid var(--ink);
+    background: #f0e5cb; font-size: .77rem;
+  }
+  .world.high { border-left-color: var(--red); }
+  .world-label { color: var(--red); font-weight: bold; letter-spacing: .045em; text-transform: uppercase; margin-right: 7px; }
+  .world-detail { color: var(--muted); }
+  .scene {
+    position: relative;
+    margin-top: 17px;
+    padding: 18px 19px 14px;
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--ink);
+    background: var(--white-paper);
+  }
+  .scene.historical { border-top-color: var(--red); }
+  .scene:focus, .recap:focus { outline: none; }
+  .scene-heading { font: bold clamp(1.5rem, 5.8vw, 2.1rem)/1.06 var(--title); margin: 3px 0 8px; }
+  .scene-copy { max-width: 66ch; font-size: .96rem; line-height: 1.45; }
+  .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 14px; }
+  .choice {
+    display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 7px;
+    min-height: 44px; padding: 7px 9px; border: 1px solid var(--rule);
+    color: var(--ink); background: #f6edd9; text-align: left; cursor: pointer;
+    font-size: .84rem; font-weight: bold; line-height: 1.2;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .choice:hover { background: #ede0c3; border-color: var(--ink); }
+  .choice-text { overflow-wrap: anywhere; }
+  .choice-icon { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--rule); font-size: .92rem; }
+  .choice[data-kind="risk"] .choice-icon, .choice[data-kind="risk"] .chance { color: var(--red); }
+  .choice[data-kind="soul"] .choice-icon { color: var(--green); }
+  .choice[data-kind="special"] { border-color: #b77464; background: #f2e2ce; color: #852b23; }
+  .choice[data-kind="special"]:hover { background: #ecd4bd; }
+  .choice[data-kind="special"] .choice-icon { border-color: #b77464; }
+  .chance { font-size: .72rem; white-space: nowrap; }
+  .actions { display: flex; gap: 9px; justify-content: space-between; flex-wrap: wrap; align-items: center; margin-top: 13px; }
+  .action {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    min-height: 43px; border: 1px solid var(--ink); padding: 7px 12px; background: transparent;
+    color: var(--ink); text-align: center; font-size: .83rem; font-weight: bold; cursor: pointer;
+  }
+  .action:hover { background: #e9dbc0; }
+  .action.primary { background: var(--ink); color: var(--white-paper); }
+  .action.primary:hover { background: #37465a; }
+  .action:disabled { border-color: var(--rule); background: #eae1cd; color: var(--muted); }
+  .action-note { color: var(--muted); font-size: .76rem; text-align: right; }
+  .activity-result { margin-top: 8px; padding-top: 7px; border-top: 1px dotted var(--rule); color: var(--muted); font-size: .79rem; }
+  .chronicle { margin-top: 17px; padding-top: 10px; border-top: 3px double var(--ink); }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+  .section-head h2 { font: bold 1.14rem/1.12 var(--title); }
+  .section-head span { color: var(--muted); font-size: .72rem; text-align: right; }
+  .entries { display: grid; gap: 1px; max-height: 150px; margin: 0; padding: 0 6px 0 0; list-style: none; overflow-y: auto; scrollbar-color: #ac9874 transparent; }
+  .entry { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: 5px; padding: 5px 0; border-top: 1px solid var(--faint-rule); font-size: .76rem; }
+  .entry time { color: var(--red); font-weight: bold; }
+  .entry strong { display: block; }
+  .entry span { display: block; color: var(--muted); margin-top: 1px; }
+  .report-result { margin-top: 9px; border-left: 3px solid var(--green); padding: 3px 0 3px 9px; color: var(--muted); font-size: .88rem; }
+  .report-result.bad { border-left-color: var(--red); }
+  .recap { margin-top: 17px; padding: 16px 19px; border: 1px solid var(--rule); border-top: 2px solid var(--red); background: var(--white-paper); }
+  .recap-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 16px; margin: 13px 0; }
+  .recap-stats div { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 5px 0; border-bottom: 1px dotted var(--rule); font-size: .83rem; }
+  .recap-stats dd { text-align: right; font-weight: bold; }
+  .recap h3 { margin-top: 12px; font: bold 1.12rem var(--title); }
+  .awards { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 13px; padding: 0; list-style: none; }
+  .awards li { padding: 3px 7px; border: 1px solid #bb8474; color: var(--red); font-size: .8rem; font-weight: bold; }
+  dialog {
+    width: min(440px, calc(100% - 26px)); max-height: calc(100% - 28px); padding: 16px;
+    border: 1px solid var(--rule); border-top: 4px solid var(--red); background: var(--white-paper); color: var(--ink);
+    box-shadow: 0 12px 38px #171c2660;
+  }
+  dialog::backdrop { background: #232a37a8; }
+  dialog .choices { grid-template-columns: 1fr; }
+  dialog .actions { justify-content: flex-end; }
+  @media (max-width: 880px) { .sheet { margin-inline: 14px; } }
+  @media (max-width: 560px) {
+    .masthead-inner { min-height: 43px; padding-inline: 13px; }
+    .archive-brand { letter-spacing: .045em; }
+    .masthead-note { font-size: .68rem; }
+    .sheet { margin: 9px 8px 18px; padding: 15px 11px 14px; }
+    .cover { padding-bottom: 9px; gap: 6px; }
+    .cover-note { font-size: .72rem; }
+    .stamp { font-size: .61rem; padding-inline: 4px; margin-right: 2px; letter-spacing: .025em; }
+    .stamp small { font-size: .54rem; }
+    .identity { gap: 6px; padding: 10px 0; }
+    .person { gap: 7px; }
+    .monogram { width: 36px; height: 36px; font-size: .94rem; }
+    .person-name { font-size: 1.07rem; }
+    .person-note, .date-note { font-size: .72rem; }
+    .date-card { padding-left: 6px; }
+    .date-year { font-size: 1.2rem; }
+    .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .stat { grid-column: span 2; padding: 5px 6px; }
+    .stat:nth-last-child(-n+2) { grid-column: span 3; }
+    .world { gap: 1px 8px; padding: 4px 6px; }
+    .scene { margin-top: 12px; padding: 13px 11px 11px; }
+    .scene-copy { font-size: .9rem; }
+    .choices { grid-template-columns: 1fr; gap: 5px; margin-top: 10px; }
+    .choice { font-size: .87rem; }
+    .actions { margin-top: 9px; }
+    .action { padding-inline: 8px; }
+    .action-note { font-size: .71rem; }
+    .chronicle { margin-top: 12px; }
+    .recap { padding: 12px; }
+    .recap-stats { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 350px) {
+    .monogram { display: none; }
+    .stamp { font-size: .52rem; }
+    .date-note { max-width: 105px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="archive-brand"><span class="archive-icon" aria-hidden="true">★</span> АРХИВ БИОГРАФИЙ</div>
+    <div class="masthead-note">Текстовый симулятор жизни</div>
+  </div>
+</header>
+<main class="sheet">
+  <header class="cover">
+    <div><p class="eyebrow">СССР и после</p><h1>Личное дело</h1><p class="cover-note">Каждый год — новое решение</p></div>
+    <div class="stamp" aria-hidden="true">ЛИЧНО<small id="stamp-state">ДЕЛО ОТКРЫТО</small></div>
+  </header>
+  <section aria-label="Данные героя">
+    <div class="identity">
+      <div class="person">
+        <div class="monogram" id="monogram" aria-hidden="true"></div>
+        <div><h2 class="person-name" id="person-name"></h2><p class="person-note" id="person-note"></p></div>
+      </div>
+      <div class="date-card"><div class="date-year" id="date-year"></div><div class="date-note" id="date-note"></div></div>
+    </div>
+    <dl class="stats" id="stats" aria-label="Характеристики"></dl>
+    <div class="ledger"><span id="income"></span><span id="intellect"></span></div>
+    <div class="world" id="world">
+      <div><span class="world-label">Холодная война</span><strong id="world-phase"></strong></div>
+      <span class="world-detail" id="world-detail"></span>
+    </div>
+  </section>
+  <section class="scene" id="scene" aria-labelledby="scene-title" tabindex="-1">
+    <p class="eyebrow" id="scene-type"></p>
+    <h2 class="scene-heading" id="scene-title"></h2>
+    <p class="scene-copy" id="scene-copy"></p>
+    <div class="report-result" id="decision-detail" hidden></div>
+    <div class="choices" id="choices"></div>
+    <div class="actions">
+      <button class="action" type="button" id="free-button"><span aria-hidden="true">＋</span> Свободное занятие в этом году</button>
+      <span class="action-note" id="free-note">Один раз в год</span>
+      <button class="action primary" type="button" id="next-button" hidden>Следующий год</button>
+    </div>
+    <p class="activity-result" id="activity-result" role="status" hidden></p>
+  </section>
+  <section class="recap" id="recap" aria-labelledby="recap-title" tabindex="-1" hidden>
+    <p class="eyebrow">Дело закрыто</p>
+    <h2 class="scene-heading" id="recap-title">Итоговое досье</h2>
+    <p class="scene-copy" id="end-reason"></p>
+    <dl class="recap-stats" id="recap-stats"></dl>
+    <h3>Отметки архива</h3>
+    <ul class="awards" id="awards"></ul>
+    <button class="action primary" type="button" id="restart-button">Начать новую жизнь</button>
+  </section>
+  <section class="chronicle" aria-labelledby="chronicle-title">
+    <div class="section-head"><h2 id="chronicle-title">Хронология жизни</h2><span>Новые записи сверху</span></div>
+    <ol class="entries" id="entries" tabindex="0" aria-label="Записи хронологии"></ol>
+  </section>
+</main>
+<dialog id="free-dialog" aria-labelledby="free-title">
+  <p class="eyebrow" id="free-year"></p>
+  <h2 class="scene-heading" id="free-title">Свободное занятие</h2>
+  <p class="scene-copy" id="free-copy"></p>
+  <div class="choices" id="free-choices"></div>
+  <form class="actions" method="dialog"><button class="action" type="submit">Вернуться</button></form>
+</dialog>
+<script>
+'use strict';
+
+const pick = items => items[Math.floor(Math.random() * items.length)];
+const rand = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const shuffle = items => {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index--) {
+    const other = rand(0, index);
+    [copy[index], copy[other]] = [copy[other], copy[index]];
+  }
+  return copy;
+};
+
+const cities = ['Москва', 'Ленинград', 'Свердловск', 'Иркутск', 'Киев', 'Минск', 'Одесса', 'Владивосток'];
+const names = {
+  m: ['Александр', 'Андрей', 'Борис', 'Валерий', 'Виктор', 'Владимир', 'Дмитрий', 'Игорь', 'Михаил', 'Николай', 'Сергей', 'Юрий'],
+  f: ['Анна', 'Валентина', 'Вера', 'Галина', 'Елена', 'Ирина', 'Лариса', 'Людмила', 'Марина', 'Наталья', 'Ольга', 'Татьяна']
+};
+const surnames = [
+  ['Волков', 'Волкова'], ['Громов', 'Громова'], ['Коваленко', 'Коваленко'], ['Козлов', 'Козлова'],
+  ['Кузнецов', 'Кузнецова'], ['Лебедев', 'Лебедева'], ['Морозов', 'Морозова'], ['Орлов', 'Орлова'],
+  ['Петров', 'Петрова'], ['Руденко', 'Руденко'], ['Соколов', 'Соколова'], ['Шевченко', 'Шевченко']
+];
+const backgrounds = [
+  {name: 'Рабочие', money: 24, reputation: 49, connections: 17, intellect: 41},
+  {name: 'Интеллигенция', money: 31, reputation: 53, connections: 23, intellect: 58},
+  {name: 'Номенклатура', money: 60, reputation: 61, connections: 53, intellect: 46},
+  {name: 'Колхозники', money: 17, reputation: 47, connections: 12, intellect: 37}
+];
+const jobs = {
+  child: {label: ['Ребёнок', 'Ребёнок'], income: 12, source: 'Деньги на карманные расходы'},
+  school: {label: ['Школьник', 'Школьница'], income: 24, source: 'Деньги на карманные расходы'},
+  student: {label: ['Студент', 'Студентка'], income: 490, source: 'Стипендия'},
+  vocational: {label: ['Учащийся ПТУ', 'Учащаяся ПТУ'], income: 375, source: 'Стипендия'},
+  soldier: {label: ['Солдат', 'Солдат'], income: 165, source: 'Довольствие'},
+  worker: {label: ['Рабочий', 'Рабочая'], income: 1440, source: 'Зарплата'},
+  engineer: {label: ['Инженер', 'Инженер'], income: 1790, source: 'Зарплата'},
+  cooperator: {label: ['Кооператор', 'Кооператор'], income: 2490, source: 'Доход от дела'},
+  unemployed: {label: ['Без работы', 'Без работы'], income: 120, source: 'Разовые заработки'},
+  prisoner: {label: ['Заключённый', 'Заключённая'], income: 0, source: ''},
+  retiree: {label: ['Пенсионер', 'Пенсионерка'], income: 960, source: 'Пенсия'}
+};
+const stats = [
+  ['health', 'Здоровье'], ['happiness', 'Счастье'], ['money', 'Деньги'],
+  ['reputation', 'Репутация'], ['connections', 'Блат']
+];
+const meters = [...stats.filter(([key]) => key !== 'money'), ['intellect', 'Интеллект']];
+const statLabels = Object.fromEntries([...stats, ['intellect', 'Интеллект']]);
+const rubles = new Intl.NumberFormat('ru-RU');
+const yearsPlural = new Intl.PluralRules('ru-RU');
+const ageLabel = age => age + ' ' + ({one: 'год', few: 'года', many: 'лет', other: 'лет'}[yearsPlural.select(age)]);
+const currency = amount => rubles.format(amount) + ' ₽';
+const lifeAge = game => game.year - game.birth;
+const worldPhases = [
+  {through: 1953, id: 'stalin', title: 'Поздний сталинизм', scrutiny: 12, note: 'Строгий надзор за импортом'},
+  {through: 1961, id: 'thaw', title: 'Оттепель', scrutiny: 5, note: 'Импорт остаётся редкостью'},
+  {through: 1962, id: 'crisis', title: 'Карибский кризис', scrutiny: 18, note: 'Усилены проверки'},
+  {through: 1964, id: 'thaw', title: 'Оттепель', scrutiny: 5, note: 'Импорт остаётся редкостью'},
+  {through: 1968, id: 'rivalry', title: 'Соперничество блоков', scrutiny: 10, note: 'К импорту относятся настороженно'},
+  {through: 1978, id: 'detente', title: 'Разрядка', scrutiny: 2, note: 'Больше культурных обменов'},
+  {through: 1984, id: 'arms', title: 'Гонка вооружений / Афганистан', scrutiny: 15, note: 'Проверки импорта · риск отправки'},
+  {through: 1989, id: 'reform', title: 'Перестройка', scrutiny: 4, note: 'Послабления для импорта · Афганистан'},
+  {through: 1990, id: 'reform', title: 'Перестройка', scrutiny: 0, note: 'Послабления для импорта'},
+  {through: 1991, id: 'collapse', title: 'Распад СССР', scrutiny: 0, note: 'Торговля меняется'},
+  {through: Infinity, id: 'post', title: 'После холодной войны', scrutiny: 0, note: 'Импорт в открытой продаже'}
+];
+const worldAt = year => worldPhases.find(phase => year <= phase.through);
+const afghanRisk = (year, connections) => {
+  if (year < 1979 || year > 1989) return 0;
+  const base = year === 1979 ? 18 : year <= 1984 ? 43 : year <= 1987 ? 35 : year === 1988 ? 17 : 7;
+  return Math.max(2, base - Math.round(connections * .22));
+};
+const cityName = game => {
+  if (game.year >= 1991) {
+    if (game.city === 'Ленинград') return 'Санкт-Петербург';
+    if (game.city === 'Свердловск') return 'Екатеринбург';
+  }
+  return game.city;
+};
+const jobName = (game, job = game.job) => jobs[job].label[game.sex === 'm' ? 0 : 1];
+const safe = (label, effects, outcome) => ({kind: 'safe', label, effects, outcome});
+const soul = (label, effects, outcome) => ({kind: 'soul', label, effects, outcome});
+const special = (label, effects, outcome, unlock = {}) => ({kind: 'special', label, effects, outcome, unlock});
+const risk = (label, base, stat, success, failure, goodText, badText, weight = .5) =>
+  ({kind: 'risk', label, chance: {base, stat, weight}, success, failure, goodText, badText});
+const chance = (choice, g) =>
+  clamp(Math.round(choice.chance.base + g[choice.chance.stat] * choice.chance.weight -
+    (choice.foreign ? worldAt(g.year).scrutiny : 0)), 5, 93);
+const event = (id, minAge, maxAge, minYear, maxYear, title, copy, choices, options = {}) => ({
+  id, minAge, maxAge, minYear, maxYear, reqStat: null, category: 'Из жизни', title, copy, choices, ...options
+});
+
+// В строках каталога: заголовок, ситуация, осторожный ответ, рискованный ответ, ответ для души.
+// После тильды у ответа записаны изменения параметров. Для риска — успех и провал.
+const effectKeys = {
+  h: 'health', s: 'happiness', m: 'money', r: 'reputation', b: 'connections', i: 'intellect',
+  j: 'job', a: 'arrest', p: 'persecution'
+};
+function parseEffects(spec = '') {
+  return Object.fromEntries(spec.trim().split(/\s+/).filter(Boolean).map(token => {
+    const [key, value] = token.split('=');
+    return [effectKeys[key], key === 'j' ? value : Number(value)];
+  }));
+}
+function catalog(idPrefix, minAge, maxAge, category, riskStat, rows) {
+  return rows.trim().split('\n').map((line, index) => {
+    const [title, copy, careful, daring, heartfelt, timing = ''] = line.trim().split('|');
+    const [slug, firstYear = '1950', lastYear = '2087', phases, foreign] = timing.split(';');
+    const [carefulLabel, carefulEffect, carefulText] = careful.split('~');
+    const [riskLabel, success, failure, goodText, badText, base] = daring.split('~');
+    const [soulLabel, soulEffect, soulText] = heartfelt.split('~');
+    return event(idPrefix + (slug || (index + 1)), minAge, maxAge, Number(firstYear), Number(lastYear), title, copy, [
+      safe(carefulLabel, {reputation: 3, ...parseEffects(carefulEffect)}, carefulText),
+      risk(riskLabel, Number(base ?? 31), riskStat, parseEffects(success), parseEffects(failure), goodText, badText),
+      soul(soulLabel, {happiness: 7, ...parseEffects(soulEffect)}, soulText)
+    ], {category, phases: phases ? phases.split(',') : null, foreign: foreign === 'import'});
+  });
+}
+
+const childhood = catalog('child-', 0, 5, 'Семья решает', 'connections', `
+Снимок в семейный альбом|Сосед принёс фотоаппарат. Плёнки осталось на один кадр, и вся семья спорит, как снять портрет.|Сняться дома у окна~m=-2~Снимок положили в альбом.|Устроить портрет на крыше~s=9 b=3~m=-9 h=-4~Над крышами получился редкий кадр.~Сильный ветер уронил фотоаппарат.|Пойти всей семьёй в парк~m=-4~У семьи остался снимок с прогулки.
+Двор под окнами|Во дворе осталась кривая песочница. Соседи собираются привести площадку в порядок к лету.|Попросить дворника починить её~b=2~Дворник записал заявку и заменил доски.|Устроить свою площадку~s=8 b=7~m=-6 r=-5~Соседи разобрали сарай и нашли доски.~Затея рассорила соседей из-за общего двора.|Завести клумбу у подъезда~m=-4~Весной у подъезда распустились цветы.
+Ясли с длинной очередью|В ближайшей группе мест нет. Родителям нужно решить, кто будет присматривать за ребёнком.|Записаться в очередь~b=1~Заявление приняли и выдали номер.|Попробовать найти место через знакомых~b=7 m=16~m=-8 r=-7~В новом корпусе нашлось свободное место.~На обещания знакомых ушло время и деньги.|Попросить бабушку остаться~m=-5 s=10~Дом наполнился сказками и запахом пирога.
+Чемодан на антресолях|С антресолей достали детские книжки, старый чемодан и целый ворох одежды на вырост.|Разобрать одежду по размерам~m=5~Часть покупок на зиму удалось отложить.|Продать чемодан коллекционеру~m=24~m=-5 s=-4~Покупатель дал больше, чем ожидали.~Покупатель передумал в последний момент.|Прочитать вслух найденные книжки~i=4 m=-2~Вечер провели за любимыми сказками.
+Квартирный сквозняк|Из старой рамы сильно дует. Новое стекло обещают поставить только через неделю.|Утеплить окно старой тканью~h=5 m=-2~Комната стала теплее.|Самим заменить раму~h=8 m=10~h=-6 m=-10~Раму удалось починить из остатков материала.~Стекло треснуло, и ремонт затянулся.|Ночевать у родни~m=-4 s=8~В гостях устроили тёплый семейный вечер.
+Кукольный театр|В клуб приехал кукольный театр. Кассир оставил несколько билетов, но желающих больше, чем мест.|Узнать про следующий спектакль~b=1~Кассир подсказал день дополнительного показа.|Записаться на замену реквизитору~s=10 b=6~m=-5 s=-5~Семью пустили за кулисы и показали кукол.~Реквизитор вернулся, а билетов уже не было.|Устроить представление дома~m=-4~Носки превратились в кукол, а стол — в сцену.
+Стол на именины|Родственники приезжают на именины, а продуктов хватит только на скромный стол.|Накрыть из того, что есть~m=-3~Гости принесли варенье и никто не ушёл голодным.|Заказать торт у незнакомой пекарки~s=12 b=3~m=-10 s=-4~На стол поставили торт, какого двор ещё не видел.~Пекарка опоздала, а задаток пропал.|Испечь печенье вместе~m=-5~Половину печенья съели ещё тёплой.
+Первая зимняя прогулка|За ночь выпал снег. На улице уже лепят снеговика, но прошлогодние валенки жмут.|Попросить у соседей валенки~b=3 h=2~Нашлась пара как раз по ноге.|Поехать кататься с длинной горки~s=13 h=2~h=-9 s=-3~С горки прокатились до самого вечера.~Падение закончилось ушибом.|Слепить снеговика у дома~m=-2~Снеговик получил морковку и отцовский шарф.
+`);
+
+const schoolYears = catalog('school-', 7, 12, 'Школьные годы', 'intellect', `
+Библиотека за углом|В детской библиотеке открыли читательский клуб. На первое занятие нужно принести любимую книгу.|Принести домашнюю книгу~i=5~Книга вызвала разговор, и в клубе появились друзья.|Придумать рассказ к занятию~i=8 s=8~s=-5 r=-4~Рассказ прочитали всему клубу.~Слушатели сбили рассказчика вопросами.|Выбрать приключения для чтения дома~m=-3 i=3~Книга не отпускала до позднего вечера.
+Трещина на глобусе|Классный глобус упал со стола. Учитель ещё не видел трещины посреди океана.|Объяснить, что произошло~r=7~Учитель принял объяснение и принёс клей.|Самостоятельно склеить глобус~i=6 b=3~r=-9 m=-7~После ремонта трещину почти не заметно.~Клей растёкся по карте, и ремонт увидел весь класс.|Нарисовать карту для класса~m=-4~Одноклассники помогли раскрасить материки.
+Занятия в бассейне|В бассейн набирают школьную группу, а тренер предлагает попробовать проплыть дорожку.|Начать с мелкой чаши~h=6~Занятия дали уверенность на воде.|Попасть сразу в быструю группу~h=9 s=9~h=-8 s=-4~Тренер заметил хороший результат.~Спешка закончилась простудой и пропусками.|Устроить водную эстафету с друзьями~m=-3~Смешные заплывы запомнились всей компании.
+Обмен марками|В школе все приносят марки, а у приятеля нашлась редкая серия с самолётами.|Меняться по каталогу~i=4 b=3~Обмен получился честным.|Обменять пачку вслепую~m=32 b=4~m=-13 s=-5~Среди марок нашёлся редкий экземпляр.~Почти все марки в пачке оказались одинаковыми.|Подарить приятелю его любимую марку~m=-4~Дружба оказалась дороже редкой марки.
+Сценка к празднику|Из школьной пьесы вчера ушёл исполнитель главной роли. До выступления осталось два дня.|Помочь с реквизитом~b=3~К представлению всё было готово вовремя.|Выйти на главную роль~s=12 r=8~s=-6 r=-5~Зал встретил финал аплодисментами.~На сцене вылетела из головы половина реплик.|Сделать афишу акварелью~m=-4 i=2~Афишу сохранили на память.
+Горка за школой|На перемене предлагают скатиться на картонке. Сегодня снег настом, а скорость выше обычного.|Проверить склон и убрать ветки~h=2 b=2~Кататься стало безопаснее для всех.|Съехать с самого верха~s=12 b=3~h=-12 s=-4~Спуск получился длиннее всех предыдущих.~Спуск закончился синяком и перевязанным локтем.|Лепить крепость у подножия~m=-2~Соседний класс помог достроить башни.
+Подписка на журнал|Почтальон принёс каталог, и на столе разошлись споры, какой журнал взять на весь год.|Выписать журнал вместе с соседом~m=-3 i=4~Оба читали по очереди и делились задачками.|Отправить рисунок на конкурс~m=18 s=9~m=-4 s=-4~Редакция напечатала рисунок и прислала приз.~Ответа из редакции так и не дождались.|Взять выпуск с фантастикой~m=-5 i=3~Фантастика увлекла на все каникулы.
+Дежурство у живого уголка|На выходные нужно забрать из школы хомяка. В клетке опять заедает дверца.|Вместе с завхозом починить дверцу~i=3~Хомяк спокойно пережил выходные.|Устроить хомяку новый домик~i=7 s=9~m=-7 s=-4~Хомяк освоил весь домик.~Питомец сбежал и перегрыз пакет с кормом.|Зайти к хомяку всей компанией~m=-3~Гостям пришлось отдать пару морковок.
+Находка на чердаке|На чердаке лежат старые лыжи. На одной стёрлось крепление, а сегодня весь класс едет в лес.|Дождаться ремонта~h=3~К следующим выходным крепление заменили.|Испытать лыжи на тропе~s=10 h=5~h=-12 r=-4~Лыжи выдержали весь маршрут.~Крепление подвело на первом спуске.|Пойти в лес пешком~m=-2 h=4~На поляне устроили привал с горячим чаем.
+Таблицы на стене|Учитель собирает команду на школьную олимпиаду. Пара сильных участников заболела.|Пройти отбор с классом~i=5~Отбор показал, какие темы стоит подтянуть.|Попробовать задачи старшего класса~i=10 r=7~s=-6 r=-4~Команда взяла приз благодаря последней задаче.~Сложные задачи отняли почти всё время.|Подготовить головоломки для друзей~m=-3 i=4~Из задач устроили собственный турнир.
+Зонтик после уроков|У дверей школы ливень. Соседский ребёнок стоит под козырьком и ждёт, когда кто-нибудь его заберёт.|Проводить домой под зонтом~b=4~Соседи потом принесли домашнее варенье.|Перебежать через затопленный двор~s=9 b=3~h=-9 m=-4~На другом берегу встретили ребят и отправились искать приключения.~Ноги промокли, и обувь пришлось сушить два дня.|Остаться рисовать в школе~m=-3 i=2~За дождём снаружи получился красивый пейзаж.
+`);
+
+const teens = catalog('teen-', 13, 17, 'Юность', 'intellect', `
+Группа из соседних дворов|У музыкантов сорвалась репетиция: барабанщик уехал, а билет на концерт уже обещан друзьям.|Помочь настроить звук~i=3~Группа отыграла без технических сбоев.|Заменить барабанщика~b=8 s=13~r=-7 s=-5~Песню повторили на бис.~Ритм сорвался в самом куплете.|Устроить концерт во дворе~m=-7~До темноты никто не хотел расходиться.
+Посылка издалека|Друг по переписке предложил обменяться посылками. На почте предупредили о долгой доставке.|Начать с простого письма~b=4~Переписка стала регулярной.|Отправить редкую коллекцию значков~m=62 b=5~m=-36 s=-7~В ответ пришла ценная подборка.~Посылка потерялась по дороге.|Сделать открытку вручную~m=-5~Ответное письмо сохранилось надолго.
+Радио на кухне|Из старых деталей можно собрать приёмник. Во дворе нашёлся человек, который готов дать схему.|Проверить схему с наставником~i=7~С наставником удалось разобраться в схеме.|Собрать приёмник для продажи~m=95 i=7~m=-24 h=-4~Покупатель помог найти заказы на другие приёмники.~Детали перегрелись, пришлось покупать замену.|Поймать дальнюю музыкальную станцию~m=-9 i=3~Вечером на кухне звучала редкая музыка.
+Дорога в соседний город|Друзья собираются на дневной концерт. Последний автобус обратно уходит задолго до конца программы.|Заранее купить обратный билет~m=-7 r=4~Домой удалось вернуться по плану.|Остаться до конца и поискать попутку~s=12 b=6~m=-19 h=-5~После концерта нашлась компания с машиной.~Пришлось мёрзнуть на вокзале до утра.|Сходить на местный концерт~m=-8~Выступление оказалось приятнее, чем ожидалось.
+Подпись под жалобой|В мастерской сломался обогреватель, и товарищи составляют письмо директору.|Подать обращение всей группой~r=5 b=4~Сбой зарегистрировали и назначили ремонт.|Зачитать письмо на общем собрании~r=9 b=8~r=-12 s=-6~Директору пришлось ответить при всех.~Руководство сочло выступление нарушением порядка.|Перенести занятия домой~m=-9~За чаем удалось доделать общий проект.
+Ремонт велосипеда|Сосед отдал велосипед без заднего колеса. Его можно починить, если найти подходящие детали.|Обратиться в мастерскую~m=-14 i=2~Мастер показал, как поставить колесо.|Починить и перепродать~m=115 i=6~m=-30 s=-4~За готовый велосипед хорошо заплатили.~Покупатель потребовал вернуть деньги за дефект.|Оставить велосипед для поездок~m=-20 h=7~Поездки за город стали любимым занятием.
+Кружок первой помощи|На занятие пригласили фельдшера. На добровольцах показывают, как накладывать повязку.|Пройти полный курс~i=6 h=2~Уроки пригодились на тренировках.|Записаться на городские соревнования~r=9 b=5~s=-5 r=-5~Команда заняла призовое место.~Медленная повязка стоила команде результата.|Сделать аптечку для походов~m=-9 h=5~Аптечка несколько раз выручила друзей.
+Разговор о профессии|В учебном заведении проводят день открытых дверей. За одно утро можно побывать в двух мастерских.|Выбрать консультацию мастера~i=6~Стало ясно, как готовиться к поступлению.|Пройти пробное собеседование~i=9 r=8~s=-5 r=-4~Мастер пригласил приходить на практику.~На собеседовании не хватило подготовки.|Заглянуть в студию театра~m=-6 s=10~В студии нашлась компания на всё лето.
+Летний маршрут|На каникулы предлагают поход. Один участник внезапно отказался, и кто-то должен придумать новый маршрут.|Взять размеченную тропу~i=3 h=3~Группа дошла до привала засветло.|Испытать короткую тропу по карте~b=6 s=12~h=-11 s=-5~Новая тропа вывела к прекрасному озеру.~Связь пропала, и половину дня искали дорогу.|Устроить пикник на знакомом берегу~m=-12 h=4~У воды провели весь день.
+Куртка на вырост|В магазине осталась одна хорошая зимняя куртка. Она дорогая, а старая всё ещё держится.|Починить подкладку старой куртки~m=-6 i=2~Старая куртка выдержала ещё одну зиму.|Заказать куртку через знакомого~m=48 b=5~m=-33 r=-5~За половину цены нашлась куртка подходящего размера.~Знакомый потерял предоплату.|Переделать куртку по своему вкусу~m=-13~Куртка получилась единственной в своём роде.
+`);
+
+const youth = catalog('youth-', 18, 34, 'Самостоятельная жизнь', 'intellect', `
+Первая общая кухня|Свободная комната есть, но кухня общая. Соседи хотят распределить полки и часы уборки.|Записать правила вместе~b=5~У каждого нашлась своя полка.|Организовать обмен комнатами~m=210 b=7~m=-140 r=-8~Удалось получить более удобную комнату.~Из-за срыва обмена пришлось оплачивать переезд.|Сварить ужин на весь этаж~m=-22~После ужина соседи стали здороваться.
+Объявление на остановке|На остановке появилось объявление о вечерних курсах. Первая встреча бесплатная.|Посмотреть программу занятий~i=6~Курсы оказалось удобно совмещать с делами.|Оплатить сокращённый курс~i=12 m=170~m=-115 s=-6~Новый навык быстро принёс первый заработок.~Курс закрыли посреди месяца.|Уйти на урок фотографии~m=-28 i=4~В доме появились первые собственные снимки.
+Редкая поездка к морю|Друзья собирают компанию к морю. Мест на поезд мало, а с жильём пока неопределённость.|Купить билеты заранее~m=-52 h=4~Дорога прошла спокойно.|Оплатить дешёвую комнату вперед~m=170 s=11~m=-130 r=-6~Удалось снять недорогую комнату совсем у моря.~Адрес оказался вымышленным.|Устроить отпуск у ближайшей реки~m=-25 h=6~У воды было тихо и почти безлюдно.
+Доска с вакансиями|На стенде висит объявление о работе с обучением. Нынешние обязанности уже порядком наскучили.|Поговорить с кадровиком~i=4 b=3~Кадровик объяснил условия перехода.|Взять испытательную смену~m=290 r=6~m=-110 h=-7~За испытательную смену дали премию.~Смена отняла силы и оставила без оплаты.|Взять выходной для любимого занятия~m=-28~Получилось отдохнуть и подумать.
+Разговор о свадьбе|Близкие ждут большой свадьбы, а пара ещё не решила, сколько может себе позволить.|Обговорить скромный бюджет~m=-45 r=5~Договориться удалось без долгов.|Положиться на помощь дальнего родственника~m=240 b=8~m=-165 s=-7~Родственник достал зал и помог с оплатой.~На обещанную помощь вдруг пришлось рассчитывать вслепую.|Отпраздновать вдвоём~m=-65 s=13~Этот вечер запомнился надолго.
+Подработка в соседнем районе|Предлагают работу на пару вечеров. Прораб торопит с ответом, но объём работы неясен.|Согласовать оплату заранее~m=90~Оплату выдали в оговорённый день.|Взять весь заказ на себя~m=410 r=7~m=-120 h=-12~Заказ удалось сдать досрочно.~Не хватило материалов, и заказчик отказался платить.|Оставить вечера друзьям~m=-26 h=3~В свободные вечера наконец встретились все.
+Открытая тренировка|Тренер с соседней площадки собирает взрослых новичков. Для команды не хватает человека.|Записаться в группу новичков~h=8~Тренер помог выстроить нагрузку.|Заменить участника на соревнованиях~h=10 s=11~h=-13 s=-4~Команда неожиданно дошла до финала.~Непривычная нагрузка закончилась травмой.|Играть с друзьями по выходным~m=-25 h=6~Выходные стали бодрее.
+Старый письменный стол|В новой комнате нужен стол. По объявлению нашёлся дешёвый, но столешница перекошена.|Уточнить состояние и поторговаться~m=-27 i=3~При покупке удалось сбить цену.|Взять партию мебели на ремонт~m=350 i=6~m=-155 h=-6~Отреставрированную мебель быстро разобрали.~Часть мебели не подлежала восстановлению.|Расписать столешницу~m=-33~Рабочий стол стал любимой вещью в комнате.
+Ночное расписание|Работа сменилась ночными дежурствами. Платят больше, но спать днём мешает шумная улица.|Обсудить чередование смен~h=6 r=4~Дежурства распределили между несколькими людьми.|Взять подряд несколько ночей~m=340 r=6~h=-15 s=-9~Получилась солидная прибавка.~Переутомление привело к ошибкам.|Попросить один свободный вечер~m=-57 s=10~В свободный вечер удалось выспаться.
+Письмо о поездке|Давний друг зовёт пожить в другом городе. С работой на новом месте ещё ничего не ясно.|Съездить в гости на выходные~m=-28 b=5~Разговор помог трезво оценить планы.|Временно снять угол и искать заработок~m=365 b=8~m=-180 s=-7~Нашлись хорошие заказы и знакомые.~За жильё пришлось платить, пока заработка не было.|Остаться и навестить старых друзей~m=-30~Старая компания собралась впервые за много лет.
+Учебник с пометками|В книжной лавке лежит редкая книга по профессии с чужими заметками на полях.|Прочитать её в читальном зале~i=6~Несколько заметок пригодилось на практике.|Договориться обучать других по книге~m=310 i=8~m=-90 r=-7~Собралась небольшая группа учеников.~Первое занятие пришлось отменить.|Купить для себя и пролистать дома~m=-34 i=5~В книге нашлось больше интересного, чем обещало название.
+Участок за городом|Знакомые предлагают место в садовом товариществе. От остановки туда ещё километр пешком.|Посмотреть смету и почву~i=3 r=4~Выяснились все предстоящие расходы.|Взять участок под продажу рассады~m=390 h=5~m=-170 h=-7~Рассада разошлась по соседним участкам.~Поздний заморозок испортил посадки.|Посадить несколько кустов для себя~m=-42 h=5~К осени удалось собрать первые ягоды.
+Трещина в зубе|За ужином треснул зуб. В ближайшем кабинете запись через неделю, а в другом районе предлагают срочный приём.|Записаться по обычной очереди~h=5 m=-25~Лечение удалось закончить вовремя.|Пойти на срочный приём по совету~h=12 m=-44~h=-12 m=-90~Хороший врач решил проблему за один приём.~Понадобилось перелечивать зуб.|Провести вечер за тихой музыкой~m=-12 s=9~Музыка помогла переждать трудный вечер.
+Комната для репетиций|У компании появился ключ от пустой комнаты. Можно открыть клуб, если жильцы поддержат.|Собрать согласия и утвердить часы~b=7~Соседи согласились на пробный месяц.|Устроить первое выступление с платным входом~m=345 b=8~m=-90 r=-8~После аншлага клубу предложили постоянное помещение.~Жильцы пожаловались на шум, пришлось вернуть деньги.|Репетировать для своих~m=-30 s=11~Музыка стала еженедельным ритуалом.
+Коробки с учебной практики|После смены предлагают забрать ненужные инструменты. Состояние части коробок неизвестно.|Попросить акт передачи~m=55 i=3~Хорошие инструменты достались официально.|Взять коробки оптом за плату~m=305 i=5~m=-160 s=-5~Часть инструмента оказалась ценной.~Почти все детали оказались сломанными.|Подарить инструменты знакомому мастеру~m=-20 b=6~Мастер помог починить вещи для дома.
+Премия за предложение|На работе ищут способы сократить лишние операции. За внедрённую идею обещают премию.|Обсудить идею с коллегами~i=5 r=5~Коллеги помогли найти слабое место в плане.|Взяться за опытную партию~m=490 r=9~m=-110 r=-9~Опытная партия принесла премию.~План провалился, материалы списали.|Взять вечер для своего проекта~m=-40 i=5~Дома наконец нашлось время на давний замысел.
+Коллективная поездка|В выходные собирается автобус на экскурсию. Организатор внезапно выбыл.|Взять на себя список пассажиров~b=5~Места поделили без путаницы.|Организовать экскурсию для двух групп~m=280 b=8~m=-110 r=-6~Второй автобус тоже заполнился.~Второй автобус пришлось оплатить почти пустым.|Вместо автобуса гулять пешком~m=-24 h=5~Удалось увидеть знакомый город по-новому.
+Фотоплёнка на проявке|После праздника осталось два рулона плёнки. В очереди на проявку шепчутся, что часть заказов перепутали.|Проверить номера квитанций~i=3 b=3~Заказы нашли, снимки дошли до семьи.|Предложить сделать тираж для всех гостей~m=245 b=7~m=-105 s=-6~Гостям понравились снимки, пошли новые заказы.~В тираж ушли чужие кадры, пришлось переделывать.|Собрать домашний альбом~m=-33~Альбом открывали на каждой встрече.
+`);
+
+const adulthood = catalog('adult-', 35, 59, 'Повседневная жизнь', 'connections', `
+Сырость в подвале|Плесень добралась до первого этажа. Одни соседи зовут мастера, другие говорят, что справятся сами.|Подать общую заявку~b=4 h=2~Бригада прочистила вентиляцию.|Нанять мастера без сметы~m=290 b=5~m=-245 r=-7~Мастер закончил дешевле, чем обещала бригада.~Соседи отказались платить за незаконченный ремонт.|Посадить цветы под окнами~m=-25 h=2~Пока ждали ремонта, двор преобразился.
+Спор о великом ремонте|Кафель в ванной крошится, а материалы опять подорожали.|Купить только необходимое~m=-55 i=2~Ремонт уложился в смету.|Выкупить остатки у незнакомой бригады~m=420~m=-190 s=-6~В остатках оказалось всё нужное для ремонта.~Половина плитки оказалась с трещинами.|Сделать полку и оставить остальное до весны~m=-38~В ванной стало уютнее.
+Склад на окраине|Старая контора освобождает склад. Бывшие сотрудники спорят, кому достанутся шкафы и инструменты.|Попросить список на списание~m=90~По списку достался хороший шкаф.|Взяться распродать содержимое склада~m=690 b=5~m=-240 r=-8~На инструменты нашёлся оптовый покупатель.~За шкафами никто не приехал, а вывоз пришлось оплатить.|Отдать вещи кружку в соседнем доме~m=-28 b=5~В кружке сделали из них новую мастерскую.
+Протекающая крыша|После ливня по потолку пошли пятна. Ремонт обещают лишь после общего осмотра.|Добиться регистрации заявки~b=4~Осмотр нашли возможность провести раньше.|Оплатить срочную заплатку на крыше~m=410 h=4~m=-270 h=-7~Заплатка спасла потолок от большого ремонта.~Заплатку сорвало следующим ливнем.|Подождать у друзей с настольной игрой~m=-24~Игру потом повторяли каждую неделю.
+Гости на две недели|Родственникам негде остановиться, а в квартире и так тесно.|Распределить спальные места~b=5~Обошлось без споров о тесноте.|Найти жильё для всех через посредника~m=310 b=6~m=-180 r=-5~Посредник нашёл пустующую квартиру по хорошей цене.~Обещанная квартира оказалась занята.|Уместиться на кухне и вспоминать детство~m=-32 s=11~В доме снова звучали семейные истории.
+Семейная тетрадь расходов|За несколько месяцев накопились чеки. Никто не уверен, куда ушли деньги.|Пересмотреть регулярные траты~m=120 i=4~Нашлись расходы, от которых легко отказаться.|Объединить закупки с соседями~m=420 b=5~m=-195 r=-6~Оптовая покупка заметно сэкономила деньги.~Заказ приехал испорченным, а продавец исчез.|Оставить часть бюджета на путешествие~m=-65~Появилось событие, которого хочется ждать.
+Кабинет физиотерапии|В поликлинике предлагают курс на неудобное время. Спина давно напоминает о себе.|Вписать приёмы в расписание~h=8 m=-24~К концу курса боль стала реже.|Заплатить за ускоренный курс~h=14 m=-60~h=-9 m=-130~Подобрали упражнения, которые действительно помогли.~Курс пришлось прервать из-за боли.|Выделить время на прогулки~m=-18 h=6~Тихие прогулки вошли в привычку.
+Заблудившиеся письма|Почтальон положил к вам чужую пачку писем. На нескольких конвертах обратный адрес неполный.|Вернуть пачку в отделение~r=6~Письма восстановили в маршруте доставки.|Самостоятельно разыскать адресатов~b=12 s=9~m=-24 r=-7~Письма дошли, а в доме появились знакомые.~Одного из адресатов поиски сильно встревожили.|Написать старому другу~m=-12~Из письма выросла новая переписка.
+Ящик яблок|У знакомого слишком большой урожай. Он уговаривает забрать ящик на пробу.|Разделить яблоки между домами~b=5 m=25~Ни одно яблоко не пропало.|Купить урожай на перепродажу~m=540 b=4~m=-220 h=-4~На рынке урожай разобрали до полудня.~Большая часть яблок переспела по дороге.|Сварить варенье для родных~m=-20~Зимой варенье напоминало об осени.
+Домашний сапожник|Сосед умеет чинить обувь и предлагает поделиться инструментами.|Отнести одну пару на пробу~m=-25 i=3~Ремонт оказался аккуратным.|Договориться о группе заказчиков~m=440 b=7~m=-175 r=-8~Сапожник справился со всеми заказами.~Часть заказов сорвалась и пришлось вернуть залог.|Попросить научить ставить заплатки~m=-24 i=6~Старым ботинкам продлили жизнь.
+Поездка на лечение|Врач советует сменить обстановку и отдохнуть. Подходящий вариант нашёлся в другом городе.|Согласовать лечение заранее~h=9 m=-54~В санатории спокойно прошёл весь курс.|Поехать по путёвке с рук~h=13 m=180~m=-200 h=-8~Путёвка оказалась действительной и дешёвой.~На месте отказались принимать путёвку.|Остаться на неделю у близких~m=-36 h=4~Вместо расписания были сон и долгие разговоры.
+Дело о шумной мастерской|За стеной весь вечер гудит инструмент. Люди на площадке собирают подписи под жалобой.|Сначала поговорить с хозяином~b=4 r=5~Хозяин согласился работать в другие часы.|Вынести спор на общее собрание~b=10 r=6~b=-5 r=-10~На собрании согласовали удобный график до конца года.~Ссора затронула несколько соседних квартир.|Перенести вечерние занятия в гости~m=-24~В гостях неожиданно нашли общие интересы.
+Ненужная кладовка|За много лет в кладовке скопились коробки, сломанная мебель и вещи родственников.|Составить список и спросить владельцев~b=5 m=30~Часть вещей забрали без споров.|Сдать мебель на комиссию~m=520~m=-190 r=-7~Несколько предметов оказались ценными.~За хранение и доставку взяли больше выручки.|Сделать в кладовке уголок для чтения~m=-39~Появилось тихое место для себя.
+Ремесленный заказ|Знакомые хвалят старую ручную работу и предлагают изготовить похожую вещь на заказ.|Согласиться на один экземпляр~m=135 i=3~Первый заказ получился удачным.|Принять сразу серию заказов~m=650 i=6~m=-245 h=-8~Серию быстро разобрали.~Сроки сорвались, и залоги пришлось вернуть.|Оставить работу как подарок~m=-47 s=11~Подарок передают из рук в руки.
+Река у старой переправы|Знакомая тропа к реке заросла. Соседи собираются открыть её снова.|Убрать мусор и расчистить подход~h=4 b=4~К берегу стало легче добраться.|Взяться восстановить деревянный настил~r=10 b=8~h=-11 m=-125~Настил выдержал сезон, им пользовалась вся округа.~Часть конструкции смыло первым паводком.|Порыбачить с берега~m=-29 h=4~Утро прошло в редкой тишине.
+Ежегодный медосмотр|Знакомый врач заметил, что старые результаты обследований пора обновить.|Пройти обследование по списку~h=8 m=-22~Удалось вовремя обратить внимание на давление.|Втиснуть все обследования в один день~h=12 m=95~h=-8 m=-130~Без повторных поездок удалось сэкономить и получить результат.~Половину анализов пришлось пересдать.|Начать утро с неспешной разминки~h=5 m=-16~После разминки легче начинать день.
+Отказ в льготе|В учреждении потеряли старую справку, и без неё отказываются принять заявление.|Запросить копию в архиве~i=4 b=3~Копия пришла по официальному запросу.|Передать бумаги через знакомого~m=470 b=8~m=-180 r=-12~Заявление удалось провести без нового ожидания.~Бумаги потерялись во второй раз.|Отложить визит и провести день с близкими~m=-35~На следующий визит хватило сил.
+Свежий номер районной газеты|В газете ищут заметки от читателей. Во дворе произошла история, о которой хочется рассказать.|Уточнить детали у участников~i=4 r=5~Два свидетеля согласились дать комментарии.|Отдать заметку в номер под своим именем~m=340 r=9~r=-11 s=-7~Редакция заплатила и предложила продолжить.~Редактор выпустил заметку с ошибкой, начались споры.|Записать историю для семьи~m=-15 i=4~Заметка сохранилась в отдельной тетради.
+Забытое обещание|Много лет назад друг просил помочь с одним делом. Сегодня он снова об этом напомнил.|Договориться о посильной помощи~b=5~Друг обрадовался даже небольшой поддержке.|Стать поручителем~m=530 b=8~m=-260 r=-9~Договорённость принесла хороший заработок.~Чужое обещание пришлось оплачивать своими деньгами.|Просто провести вечер вместе~m=-25~Оба вспомнили, почему дружили.
+Кружок для взрослых|В клубе по вечерам учат рисовать. Материалов хватает только для одной группы.|Записаться на следующий набор~i=5~В клубе дали материалы для домашнего задания.|Договориться открыть дополнительную группу~m=430 b=7~m=-160 r=-6~Новую группу набрали за неделю.~Часть записавшихся отказалась после закупки красок.|Рисовать дома у окна~m=-31~Первый удачный набросок повесили на стену.
+Генеральная уборка|Перед приходом гостей сломался пылесос. На ковре осталась пыль после ремонта.|Починить фильтр по инструкции~i=4 m=-12~Пылесос снова заработал.|Разобрать мотор без мастера~m=350 i=5~m=-175 h=-5~Мотор удалось восстановить без расходов на замену.~Мотор сгорел после первой попытки.|Отложить уборку и встретить гостей во дворе~m=-24~Посиделки на воздухе всем понравились.
+Переезд на другой берег|Появилась возможность обменять квартиру на более тихую, но туда дольше добираться.|Измерить дорогу в час пик~i=4 b=3~Стало ясно, подходит ли новый маршрут.|Внести задаток за обмен~m=620 s=8~m=-300 r=-6~Обмен открывал дорогу к заметно лучшим условиям.~Сделка сорвалась, задаток не вернули.|Остаться и обновить дом~m=-55~После перестановки знакомая квартира изменилась.
+Ключ от общего сарая|У нескольких соседей потерялись инструменты. Общий сарай открывается одним ключом.|Договориться о журнале выдачи~b=5 r=5~Инструменты стали возвращать вовремя.|Предложить платный прокат инвентаря~m=580 b=6~m=-220 r=-8~Прокат покрыл покупку новых инструментов.~Имущество пропало, а клиенты требовали залог назад.|Заняться поделками из обрезков~m=-22 i=4~Из остатков вышли прочные ящики.
+Фальшивая квитанция|В подъезде появились странные квитанции за обслуживание. Сумма почти совпадает с обычной.|Свериться с управляющим~r=7 i=3~Поддельные квитанции успели снять до оплаты.|Разыскать расклейщика~m=380 r=8~r=-10 s=-6~Расклейщика удалось узнать и вернуть деньги жильцам.~Подозрение пало на человека, который ни при чём.|Объяснить пожилым соседям, как проверить счёт~m=-18 b=6~Соседи перестали бояться новых счетов.
+Чужой юбилей|На юбилее нужен человек, который соберёт воспоминания гостей о хозяине.|Подготовить вопросы заранее~i=4 b=4~Гости охотно вспомнили давние случаи.|Организовать запись и сделать копии~m=420 b=7~m=-170 s=-5~Родственники оплатили работу и попросили дополнительные копии.~Часть записи пришлось восстанавливать за свой счёт.|Рассказать одну историю за столом~m=-24 s=11~За столом вспомнили человека, которого давно не видели.
+Сломанный метроном|Из музыкальной школы принесли старый метроном. Директору проще выбросить его, чем искать детали.|Показать знакомому мастеру~i=4 b=4~Мастер вернул метроном в строй.|Взяться за ремонт всей партии~m=530 i=5~m=-190 r=-7~За отремонтированную партию хорошо заплатили.~Подходящих деталей оказалось слишком мало.|Отдать школе свой запасной инструмент~m=-35~Один из учеников прислал письмо с благодарностью.
+`);
+
+const laterLife = catalog('later-', 60, 99, 'Зрелые годы', 'connections', `
+Первая пенсия|Деньги пришли по новому расписанию. Появилось утро, которое впервые не нужно делить с рабочей сменой.|Составить план расходов~m=90 i=2~Новый бюджет стал понятнее.|Взять частные заказы у бывших коллег~m=465 b=6~h=-10 m=-85~Несколько заказов хорошо оплатили.~Работа сорвалась после тяжёлой недели.|Завтракать, не глядя на часы~m=-24 s=11~Свободное утро стало любимым временем.
+Лавка у подъезда|Дворовую лавку сняли на ремонт. Без неё пожилые соседи редко выходят за ворота.|Попросить сделать временное сиденье~b=5 h=2~У подъезда снова встречаются соседи.|Собрать деньги на новую лавку~b=12 r=7~m=-110 r=-9~Лавку поставили уже к выходным.~Из-за спорной сметы сбор развалился.|Вынести стулья из дома~m=-11~Во дворе поговорили до самого вечера.
+Пропавший адрес|Письмо давнему другу вернулось с отметкой «выбыл». Другой адрес надо искать по старым знакомым.|Спросить у общих знакомых~b=5~Удалось получить свежий адрес.|Поехать на поиски лично~b=10 s=13~m=-145 h=-7~За два дня удалось найти друга.~Дорога оказалась напрасной.|Написать воспоминание о школьных днях~m=-11 i=3~В тетради появилась первая глава.
+Голуби на карнизе|На карнизе поселились голуби. Соседи предлагают прогнать их, пока они не привыкли.|Попросить осмотреть карниз~b=4~Крыльцо прибрали, птиц оставили в покое.|Поставить кормушку в другом дворе~s=11 b=6~m=-48 r=-8~Птицы перебрались, и соседи остались довольны.~Кормушка привлекла птиц к чужим окнам.|Наблюдать за птицами в сквере~m=-13 h=4~У прогулок появился повод.
+Четыре стула для клуба|Районному клубу отдали комнату, но в ней даже не на чем сидеть.|Составить список нужных вещей~b=5~В клуб передали несколько складных стульев.|Выкупить мебель из закрытого зала~m=370 b=8~m=-160 h=-6~Клубу досталась мебель, а излишки окупили покупку.~Стулья оказались прогнившими.|Провести первую встречу у себя~m=-32 s=11~За чаем приняли новых участников.
+Люпины у станции|Вдоль путей цветут люпины. Соседка предлагает проложить туда короткую прогулочную тропу.|Узнать, где безопасный проход~h=4 b=3~Нашёлся спокойный маршрут через станцию.|Собрать прогулочную группу~h=6 b=9~h=-9 r=-5~Группа стала встречаться каждые выходные.~Неудачный маршрут пришлось менять на ходу.|Нарисовать цветы с натуры~m=-18~Рисунок повесили у окна.
+Коллекция ключей|В ящике накопились ключи от давно забытых замков.|Пометить те, у которых есть хозяева~i=4 b=3~Два ключа удалось вернуть.|Продать старые ключи как коллекцию~m=250 b=5~m=-64 s=-4~Коллекцию забрал театральный реквизитор.~Оценка стоила больше предложенной цены.|Сделать из ключей подвеску~m=-12~Во дворе теперь звенит на ветру.
+Упражнения для суставов|Врач предлагает простые упражнения, а знакомые хвалят новый оздоровительный кружок.|Попросить показать движения~h=8~Занятия стали привычкой и облегчили ходьбу.|Взять интенсивный курс~h=13 m=-28~h=-13 m=-110~Нагрузка оказалась посильной и полезной.~Темп вызвал боль, занятия пришлось прервать.|Начинать день с прогулки~m=-15 h=5~После прогулки день начинается спокойнее.
+Ненужный будильник|На комоде стоит будильник, который перестал звонить ровно в нужное время.|Отнести его часовщику~m=-20 i=3~Будильник снова показывает верное время.|Купить ящик старых часов на запчасти~m=295 i=5~m=-115 s=-5~Один механизм оказался редким, и его выкупил мастер.~Все механизмы были испорчены.|Оставить будильник как память~m=-9~У любимой вещи осталось место на комоде.
+Звонок из архива|Архивист просит опознать людей на старом снимке. Позади группы виден знакомый дом.|Сверить имена с соседями~i=4 b=4~Несколько имён установили точно.|Взяться описать всю коллекцию~m=370 i=7~m=-78 r=-5~Часть подписей вошла в выставку.~Несколько догадок оказались ошибочными.|Заказать копию для дома~m=-19~Снимок поставили возле семейного альбома.
+Книги с первого этажа|Соседи уезжают и хотят раздать книги. В коробках целые серии вперемешку.|Помочь отобрать книги для читальни~b=5 i=4~В читальне приняли три коробки.|Подыскать покупателей на всё собрание~m=310 i=6~m=-92 h=-5~Нашёлся человек, которому нужны были все книги.~Коробки пришлось несколько раз отвозить обратно.|Оставить себе любимый том~m=-13 i=3~Нашлось чтение на целый месяц.
+Сборник семейных рецептов|От знакомых накопились десятки листков с рецептами, но половина записана без мерок.|Переписать проверенные блюда~i=4 b=3~Часть рецептов теперь легко повторить.|Продать сборник местному издателю~m=260 r=7~m=-105 s=-5~Издатель напечатал небольшой тираж.~Издатель отказался, расходы на подготовку остались.|Испечь пирог для соседей~m=-20~Дом наполнился запахом детства.
+Поездка к давнему дому|Знакомая улица почти перестроена. Появилось время посмотреть, что осталось от прежнего дома.|Сначала уточнить адрес~i=3 b=3~В архиве нашли номер и описали двор.|Поехать на поиски с бывшими жильцами~b=9 s=12~h=-8 m=-110~Старые соседи показали сохранившийся сад.~Дом давно снесли, дорога утомила всех.|Сделать рисунок по памяти~m=-16~На бумаге проступили знакомые окна.
+Гость из молодости|Давний коллега вернулся в город и зовёт собрать небольшую компанию.|Назначить встречу рядом с домом~b=5~На встречу смогли прийти почти все.|Снять зал с расчётом на большую явку~m=235 b=8~m=-140 r=-6~Людей пришло достаточно, и зал окупился.~Большинство не смогло прийти.|Гулять вдвоём по старой улице~m=-17 h=4~Нашлось время на важные воспоминания.
+Шахматы у окна|По утрам в клубе свободна шахматная доска. Несколько человек ищут соперников.|Сыграть тренировочную партию~i=5~За одной партией завязалось знакомство.|Записаться на городской турнир~m=220 i=7~s=-5 r=-4~Турнир закончился неожиданным призом.~В решающей партии вышло обидное поражение.|Разобрать любимую партию дома~m=-12 i=4~Нашлось продолжение, которого прежде не замечали.
+Медицинская карточка|В регистратуре не нашли записи старых приёмов. Врачу важно восстановить историю.|Принести домашние выписки~h=7 i=3~У врача появилась полная история лечения.|Искать документы в бывшем архиве~h=11 b=6~h=-8 m=-90~Нашлась редкая, но важная выписка.~Поиски затянулись, приём пришлось перенести.|После приёма зайти на чай к другу~m=-16~Разговор помог выдохнуть.
+Тёплый плед|Старый плед разошёлся по краю. В доме нашлась коробка шерстяных ниток.|Аккуратно подшить край~h=3 i=3~Плед пережил ещё одну зиму.|Взять заказ на десяток пледов~m=320 b=5~m=-125 h=-6~Заказчики разобрали пледы к холодам.~На всю партию не хватило ниток одной толщины.|Связать шарф для близкого человека~m=-20 s=11~Шарф сразу начали носить.
+Прогулка после дождя|На набережной разлилась вода. Самая короткая дорожка ещё скользкая.|Пойти по сухому маршруту~h=6~Удалось погулять без лишней спешки.|Организовать уборку дорожки~b=8 h=6~h=-12 m=-35~Соседи вместе вернули проход в порядок.~На мокрой плите не обошлось без ушиба.|Остаться под навесом и слушать дождь~m=-9 s=9~Редкая тишина пришлась кстати.
+Грелка на полке|Грелка стала протекать, а впереди холодная неделя.|Заменить её в аптеке~h=7 m=-21~Ночью снова стало тепло.|Заказать редкую модель издалека~h=11 m=-40~m=-105 h=-8~Грелка прослужила дольше прежней.~Посылку долго не удавалось получить.|Провести вечер у друзей~m=-15 h=3~Домой удалось вернуться в хорошем настроении.
+Урок для соседского ребёнка|Соседский ребёнок просит помочь с задачей, которую никак не получается решить.|Вместе пройти условие по шагам~i=4 b=5~Похожую задачу удалось решить без помощи.|Организовать домашний кружок~m=290 i=6~m=-75 r=-5~Кружок стал постоянным и принёс прибавку.~По времени смог прийти только один ученик.|Показать задачу на примере настольной игры~m=-11~После объяснения вместе сыграли партию.
+Старый двор на карте|Краеведы ищут, где раньше проходил ручей у старого двора.|Найти его на старом плане~i=5 b=4~На плане удалось отыскать русло.|Провести экскурсию для краеведов~m=215 r=7~h=-9 s=-5~После экскурсии позвали на районную выставку.~Маршрут занял слишком много сил.|Вспомнить место на прогулке~m=-12 h=5~Знакомые улицы снова удивили.
+Коробка пуговиц|В коробке лежат пуговицы с пальто, которых давно уже нет.|Разложить их по размеру~i=3 m=25~Несколько пуговиц пригодились для ремонта.|Продать часть поштучно~m=270 b=5~m=-80 s=-4~Оказалось, что старые пуговицы нужны костюмерам.~Оценка не окупила поездки на рынок.|Оформить пуговицы в семейную рамку~m=-16~У каждой пуговицы вспомнилась своя история.
+Покупки на неделю|Рынок перенесли, а тяжёлые сумки теперь приходится нести дальше.|Попросить соседа принести часть покупок~b=5 h=2~Покупки удалось разделить.|Организовать общую доставку~m=300 b=7~m=-95 r=-7~Соседи сэкономили и договорились повторить заказ.~Общий заказ приехал с грубой ошибкой.|Сходить за покупками вместе с близкими~m=-16 h=4~Дорога превратилась в прогулку.
+Ко дню рождения|Близкие предлагают заказать большой стол. Больше всего хочется видеть нескольких давних друзей.|Созвать гостей небольшими группами~b=5 m=-22~От встречи никто не устал.|Забронировать большой зал~m=240 b=7~m=-150 s=-7~Компания оказалась большой, расходы поделили.~Из-за отмены нескольких встреч пропал задаток.|Заказать только любимый пирог~m=-27 s=13~На столе появилось ровно то, чего хотелось.
+Товарищество любителей пения|В клубе ищут ещё один голос для небольшого хора. Репетиции идут днём.|Прийти на открытую репетицию~b=5~Партия оказалась по силам.|Взять сольную строчку на концерте~r=8 s=13~s=-6 r=-4~После концерта аплодировали всему хору.~От волнения сорвалось вступление.|Спеть дома старые песни~m=-12~Несколько куплетов вспомнились сами собой.
+Ключи от домика|На участке пустует дача знакомых. Они хотят, чтобы кто-нибудь присматривал за ней летом.|Договориться о нескольких визитах~b=4 h=3~Хозяева спокойно уехали на лето.|Привести домик в порядок за плату~m=405 b=6~m=-132 h=-8~У хозяев нашлись деньги на ремонт и хорошую оплату.~Протечка открылась снова после первого дождя.|Устроить вечер с чаем на веранде~m=-20 h=4~Летний вечер прошёл без спешки.
+Школьный музей|Учитель собирает вещи для выставки о прошлом. Нужны истории к нескольким предметам.|Дать школе подписанную копию снимка~b=5 i=3~У фотографии появилась аккуратная подпись.|Обещать собрать целый стенд~m=280 r=7~m=-90 h=-6~Стенд оставили постоянной частью выставки.~Сроки пришлось переносить из-за потерянных материалов.|Зайти и рассказать одну историю~m=-11 s=10~Школьники долго задавали вопросы.
+Шумная остановка|Скамейку у остановки поставили у самой дороги. Жильцы хотят перенести её подальше от машин.|Отправить коллективное обращение~r=6 b=4~Вопрос рассмотрели на общем выезде.|Взяться согласовать новое место~b=10 r=6~r=-9 h=-5~Остановку обустроили в тени дерева.~Из-за места поссорились два двора.|Дожидаться автобуса рядом с цветником~m=-10~Даже знакомый маршрут стал приятнее.
+Памятный календарь|В старом календаре отмечены дни рождения и годовщины. Некоторые записи совсем выцвели.|Сверить даты с родными~i=4 b=5~Даты переписали до того, как они исчезли.|Собрать общую родословную~b=11 i=7~m=-110 s=-6~От семьи поступили письма и документы.~Часть архивных справок оказалась недоступна.|Сделать календарь из любимых фото~m=-20 s=10~Каждый месяц напоминает о знакомом лице.
+Моменты немого кино|Клуб получил копию старого фильма. Представление готовы устроить, если найдётся ведущий.|Выяснить, о чём картина~i=5~Перед показом зрителям рассказали историю фильма.|Взяться за озвучку показа~m=230 s=10~r=-5 s=-6~На показ попросили дополнительные места.~Акустика подвела, зрители почти ничего не слышали.|Посмотреть фильм с семьёй~m=-19~Зрители смеялись и обсуждали сцены до конца вечера.
+Весенняя пересадка|Любимый комнатный цветок пережил зиму, но тесный горшок уже треснул.|Подобрать горшок по размеру~h=3 i=3~Цветок быстро дал новые листья.|Заказать редкие сорта вместе с соседями~m=325 b=5~m=-120 s=-5~Часть сортов обменяли на нужные вещи.~Растения не пережили холод в пути.|Раздать свои отростки знакомым~m=-13 b=6~Теперь знакомые присылают вести о ростках.
+Длинная очередь к врачу|В кабинете принимают с опозданием. Возле двери уже спорят о порядке.|Уточнить порядок у медсестры~h=6 r=5~Очередь восстановили, приём прошёл спокойно.|Заплатить за другой приём в тот же день~h=12 m=-48~h=-8 m=-130~В новом кабинете смогли сразу помочь.~Лишняя поездка отняла силы, а врача не было.|Отдохнуть после ожидания с чашкой чая~m=-13 h=3~Напряжение прошло вместе с длинным ожиданием.
+Старая отделка лестницы|Под облупленной краской виден прежний рисунок. Кто-то предлагает закрасить всё новым слоем.|Показать рисунок жильцам~b=4 i=3~Жильцы согласились оставить фрагмент.|Найти средства на восстановление~m=290 r=8~m=-115 r=-6~Мастер бережно восстановил участок.~Сбор средств сорвался из-за разногласий.|Срисовать узор в тетрадь~m=-17~В тетради сохранился рисунок всего пролёта.
+Старинный радиоприёмник|Приёмник зашипел и замолчал. Знакомые всё ещё помнят его звук.|Отнести мастеру на диагностику~m=-22 i=3~Мастер заменил одну деталь.|Выкупить старые приёмники на запчасти~m=300 i=7~m=-125 h=-5~Удалось восстановить два аппарата, один продали.~Подходящих деталей так и не нашлось.|Вспомнить любимые передачи с друзьями~m=-15~Больше всего спорили о старой музыке.
+Письмо будущим жильцам|Родные разбирают старые вещи перед ремонтом и хотят оставить под половицей небольшую записку.|Поставить точную дату и подписать~i=4 b=3~Под половицей осталась ясная запись о семье.|Собрать мемуары целого подъезда~i=8 b=10~m=-85 s=-6~Истории соседей сложились в общий альбом.~Несколько участников забрали свои записи из-за споров.|Написать о самом счастливом дне~m=-12 s=12~На бумаге осталось самое важное воспоминание.
+Утренняя гимнастика|Во дворе начали собираться на разминку. Не все движения подходят новичкам.|Обговорить для себя лёгкие упражнения~h=8~Упражнения стали привычкой без переутомления.|Попробовать общую нагрузку~h=13 b=6~h=-13 s=-5~Получилось пройти всё занятие в своём темпе.~Слишком резкое движение вызвало боль.|Пойти на короткую прогулку вместе~m=-11 h=5~После прогулки прибавилось сил.
+Аромат старого сада|Садоводы просят дать несколько черенков со старой яблони, которая больше редко плодоносит.|Попросить помочь с обрезкой~h=3 b=5~Черенки прижились у знакомых.|Развести большую партию саженцев~m=345 b=7~m=-120 h=-6~Саженцы выкупило соседнее товарищество.~Не все прививки пережили смену погоды.|Выпить чаю под яблоней~m=-13 s=10~Из-под дерева не хотелось уходить.
+Карта автобусных маршрутов|После очередной смены расписания люди у остановки путают номера и направление.|Повесить новое расписание~r=6 b=4~Путаница на остановке стала реже.|Добиться возвращения нужного рейса~b=12 r=7~r=-9 h=-5~Рейс восстановили по просьбе пассажиров.~Спор отнял силы, расписание не пересмотрели.|Испытать новый маршрут без спешки~m=-18 h=3~По дороге нашлось хорошее тихое кафе.
+Вечер в читальном зале|В зале собирают рассказы о давно закрытых рабочих местах и небольших мастерских.|Принести точные даты и имена~i=5 r=5~Сотрудники сверили факты и приняли рассказ.|Обещать редакции цикл воспоминаний~m=310 i=7~m=-90 h=-6~Вышел небольшой цикл, редакция заплатила гонорар.~Работа затянулась, часть очерков вернули.|Рассказать о смешном случае с коллегой~m=-12 s=11~Зал смеялся и вспоминал похожие истории.
+Листок с телефонными номерами|В записной книжке остались номера людей, с которыми давно не было разговора.|Обновить номера с помощью родных~i=4 b=6~Несколько старых контактов снова появились в книжке.|Взяться организовать общую встречу~b=11 s=12~m=-115 r=-5~Почти все нашли время и пришли.~Место встречи пришлось отменить, залог пропал.|Позвонить одному близкому человеку~m=-12 s=12~Разговор оказался длинным и тёплым.
+`);
+
+const historical = (year, title, copy, choices) =>
+  event('history-' + year, 0, 99, year, year, title, copy, choices, {category: 'Историческая веха', historical: true});
+
+const role = game => {
+  if (game.job === 'prisoner') return 'prison';
+  if (game.job === 'soldier') return 'army';
+  if (lifeAge(game) < 7) return 'home';
+  if (lifeAge(game) < 18 || ['student', 'vocational'].includes(game.job)) return 'study';
+  return 'work';
+};
+function eraChoices(game, options) {
+  return (options[role(game)] ?? options.work)(game);
+}
+function yearOptions(careful, daring, heartfelt, extra) {
+  const options = [safe(...careful), risk(...daring), soul(...heartfelt)];
+  if (extra) options.push(special(...extra));
+  return options;
+}
+const milestones = [
+  historical(1980, 'Олимпийское лето', game => game.city === 'Москва'
+    ? 'В Москве открываются Олимпийские игры. На улицах появились гости из разных стран, а с витрин смотрит олимпийский Мишка.'
+    : 'В Москве открываются Олимпийские игры. Олимпийского Мишку печатают на открытках, а у телевизоров собираются целые дворы.', game => eraChoices(game, {
+    home: () => yearOptions(
+      ['Посмотреть открытие с родителями', {reputation: 3, connections: 2}, 'На открытие собрались даже соседи.'],
+      ['Семьёй поехать на соревнования', 33, 'connections', {happiness: 14, connections: 5}, {money: -35, happiness: -6}, 'Семье достались хорошие места.', 'С билетом вышла накладка, а дорогу уже оплатили.'],
+      ['Сшить домашнего олимпийского Мишку', {money: -8, happiness: 10}, 'Мишка надолго поселился на подоконнике.']),
+    study: () => yearOptions(
+      ['Помочь на спортивном празднике', {reputation: 6, intellect: 3}, 'Праздник прошёл по расписанию.'],
+      ['Обменять значки с коллекционерами', 32, 'connections', {money: 170, connections: 8}, {money: -51, reputation: -10}, 'Попался редкий значок.', 'При обмене попалась подделка.'],
+      ['Нарисовать плакат с Мишкой', {money: -12, happiness: 10}, 'Плакат повесили на школьном стенде.'],
+      ['Получить приглашение для класса', {connections: 7, happiness: 9, reputation: 4}, 'Класс попал на спортивный показ.']),
+    army: () => yearOptions(
+      ['Помочь устроить показ в части', {reputation: 7}, 'Командир разрешил посмотреть открытие.'],
+      ['Выступить на соревнованиях части', 26, 'health', {reputation: 12, happiness: 9}, {health: -10, reputation: -5}, 'Команда взяла первое место.', 'Нагрузка привела к растяжению.'],
+      ['Написать домой об Играх', {happiness: 10, money: -6}, 'Домой ушло письмо с олимпийской маркой.']),
+    work: () => yearOptions(
+      ['Помочь провести показ на работе', {reputation: 6, connections: 4}, 'Коллеги вместе посмотрели соревнования.'],
+      ['Продать партию сувениров', 30, 'connections', {money: 490, connections: 8}, {money: -210, reputation: -16}, 'Сувениры разошлись за день.', 'Партию изъяли, пришлось заплатить штраф.'],
+      ['Пойти на городской спортивный праздник', {money: -22, happiness: 12}, 'На стадионе провели весь вечер.'],
+      ['Достать приглашение на соревнования', {happiness: 13, connections: 6, money: -10}, 'Знакомые нашли место на трибуне.']),
+    prison: () => yearOptions(
+      ['Узнать результаты из газеты', {reputation: 3, intellect: 4}, 'Спортивную полосу передавали из рук в руки.'],
+      ['Записаться в команду отряда', 27, 'health', {reputation: 9, happiness: 8}, {health: -9, reputation: -4}, 'Команда выиграла отбор.', 'Тренировка закончилась ушибом.'],
+      ['Нарисовать Мишку для письма домой', {happiness: 9, money: -3}, 'Рисунок удалось отправить вместе с письмом.'])
+  })),
+  historical(1985, 'Ветер перемен', 'Михаил Горбачёв возглавил партию. По радио говорят об ускорении, а антиалкогольная кампания меняет привычный уклад.', game => eraChoices(game, {
+    home: () => yearOptions(
+      ['Помочь семье устроить тихий праздник', {reputation: 4}, 'Всё прошло спокойно и без лишних затрат.'],
+      ['Организовать праздник на весь двор', 29, 'connections', {connections: 8, happiness: 10}, {money: -21, reputation: -5}, 'На праздник пришли даже новые соседи.', 'Праздник сорвал дождь, а угощение закончилось.'],
+      ['Остаться дома и печь пироги', {money: -8, happiness: 11}, 'У дома появился новый праздничный обычай.']),
+    study: () => yearOptions(
+      ['Организовать спортивный час', {reputation: 5, health: 5}, 'Учебная группа поддержала занятия.'],
+      ['Предложить открытое обсуждение перемен', 32, 'intellect', {reputation: 8, connections: 7}, {reputation: -12, happiness: -5}, 'Разговор привлёк несколько единомышленников.', 'Руководство отменило встречу.'],
+      ['Устроить вечер музыки', {happiness: 10, money: -12}, 'У вечера появился постоянный слушатель.']),
+    work: current => yearOptions(
+      [current.job === 'engineer' ? 'Предложить техническое обновление' : 'Обсудить план на собрании', {reputation: 7, intellect: 4}, 'Предложения включили в протокол.'],
+      ['Поставить деньги на бригадный эксперимент', 30, 'intellect', {money: 610, reputation: 9}, {money: -200, reputation: -14}, 'Испытание удалось, бригаде выписали премию.', 'Материалы пришлось списать.'],
+      ['Устроить чаепитие вместо застолья', {money: -25, happiness: 11}, 'Коллеги принесли выпечку и поговорили без спешки.'],
+      ['Попасть на встречу с новым начальством', {connections: 10, reputation: 5}, 'Полезный контакт помог следующему проекту.']),
+    army: () => yearOptions(
+      ['Взяться за спорт в подразделении', {health: 5, reputation: 6}, 'В расписании выделили тренировочный час.'],
+      ['Предложить командиру новый распорядок', 29, 'intellect', {reputation: 10, connections: 5}, {reputation: -9, happiness: -6}, 'В части утвердили пробный распорядок.', 'Инициативу встретили взысканием.'],
+      ['Послать домой поздравление', {happiness: 9, money: -6}, 'Из дома вскоре пришёл ответ.']),
+    prison: () => yearOptions(
+      ['Взять газету в библиотеке', {intellect: 4, reputation: 4}, 'В газете удалось прочитать о новых решениях.'],
+      ['Попросить разрешить товарищескую встречу', 31, 'connections', {reputation: 8, happiness: 9}, {reputation: -6, happiness: -5}, 'Встречу разрешили.', 'Разрешения не дали.'],
+      ['Прочитать письма родных', {happiness: 9, money: -3}, 'Домашние вести ободрили.'])
+  })),
+  historical(1986, 'Вести из Чернобыля', game => ['Киев', 'Минск'].includes(game.city)
+    ? 'На Чернобыльской АЭС произошла авария. Семья сверяет скудные сообщения и решает, как помочь близким.'
+    : 'После аварии на Чернобыльской АЭС в сводках мало подробностей. Знакомые собирают вещи для тех, кому пришлось покинуть дом.', game => eraChoices(game, {
+    home: () => yearOptions(
+      ['Остаться с семьёй и слушать сводки', {reputation: 4, health: 3}, 'Семья дождалась уточнения и держалась вместе.'],
+      ['Попробовать пожить у дальней родни', 29, 'connections', {health: 7, happiness: 8}, {money: -42, happiness: -8}, 'Родня встретила и приютила семью.', 'Поездку отменили после долгого ожидания.'],
+      ['Собрать книги для уехавших семей', {money: -9, happiness: 9}, 'Книги передали детям.']),
+    study: () => yearOptions(
+      ['Собрать проверенные сведения для группы', {intellect: 5, reputation: 5}, 'Удалось отделить сообщения от слухов.'],
+      ['Вызваться отвезти помощь в пункт сбора', 28, 'connections', {reputation: 11, connections: 7}, {money: -62, health: -7}, 'Вещи дошли до пункта сбора.', 'Дорога оказалась напрасной и утомительной.'],
+      ['Написать письма детям переселенцев', {money: -14, happiness: 11}, 'На несколько писем пришли ответы.']),
+    army: () => yearOptions(
+      ['Помочь принять грузы в тылу', {reputation: 7, connections: 3}, 'Поступившие вещи отправили по спискам.'],
+      ['Согласиться на командировку в помощь ликвидаторам', 27, 'health', {reputation: 20, money: 340}, {health: -32, happiness: -9}, 'Командировка закончилась без тяжёлых последствий.', 'После тяжёлой командировки понадобилось лечение.'],
+      ['Помочь собрать посылки семьям сослуживцев', {money: -19, happiness: 10}, 'Посылки отправили вместе с письмами.']),
+    work: current => yearOptions(
+      [current.job === 'engineer' ? 'Помочь подготовить средства измерения' : 'Отнести вещи в официальный пункт помощи', {reputation: 8, intellect: 3}, 'Собранную помощь приняли по списку.'],
+      ['Записаться в группу помощи на месте', 25, 'health', {reputation: 19, connections: 8, money: 330}, {health: -31, happiness: -10, money: -80}, 'После тяжёлой работы группе объявили благодарность.', 'После командировки пришлось обращаться к врачам.'],
+      ['Помочь временно устроить знакомую семью', {money: -75, happiness: 12, connections: 5}, 'У семьи появилось место, где можно передохнуть.'],
+      ['Найти транспорт для партии помощи', {connections: 7, reputation: 10, happiness: 4}, 'Груз отвезли без задержек.']),
+    prison: () => yearOptions(
+      ['Прочитать официальную сводку', {intellect: 4, reputation: 4}, 'Удалось узнать немного больше.'],
+      ['Попросить внеплановый звонок родным', 28, 'connections', {happiness: 12, connections: 4}, {reputation: -7, happiness: -6}, 'Разговор разрешили, родные ответили.', 'На звонок не удалось получить разрешение.'],
+      ['Послать письмо близким', {money: -4, happiness: 9}, 'Письмо передали на отправку.'])
+  })),
+  historical(1991, 'Распад СССР', 'В августе по радио сообщают о ГКЧП и провале путча. В декабре СССР прекращает существование. Сбережения обесценились, а привычные планы приходится менять.', game => eraChoices(game, {
+    study: () => yearOptions(
+      ['Остаться на учёбе и беречь сбережения', {reputation: 5, intellect: 5}, 'Учёбу удалось продолжить.'],
+      ['Присоединиться к семейной торговле', 30, 'connections', {money: 420, connections: 7}, {money: -180, reputation: -10}, 'Семья выгодно продала первые товары.', 'Не окупилась даже аренда места.'],
+      ['Записать рассказы семьи об этом годе', {money: -15, happiness: 11}, 'В тетради остались голоса близких.'],
+      ['Достать семье товары по старым ценам', {money: 130, connections: 5, happiness: 5}, 'Знакомый снабженец помог избежать переплаты.']),
+    army: () => yearOptions(
+      ['Дождаться официальных распоряжений', {reputation: 8, connections: 3}, 'Подразделению объявили новый порядок службы.'],
+      ['Просить срочный перевод ближе к дому', 29, 'connections', {connections: 10, happiness: 12}, {reputation: -10, happiness: -8}, 'Перевод согласовали.', 'Прошение не получило подписи.'],
+      ['Найти время написать семье', {money: -8, happiness: 10}, 'Семья наконец узнала, как идёт служба.']),
+    work: current => yearOptions(
+      [current.job === 'cooperator' ? 'Уточнить новые условия для своего дела' : 'Уточнить условия работы и сохранить документы', {reputation: 7, intellect: 4}, 'Письменные договорённости помогли пережить перемены.'],
+      ['Закупить товар на все свободные деньги', 27, 'connections', {money: 860, connections: 8}, {money: -530, reputation: -12}, 'Товар ушёл раньше следующего скачка цен.', 'Часть запасов испортилась, а цены уже изменились.'],
+      ['Остаться рядом с родными', {money: -44, happiness: 12}, 'Вместе пережить неопределённость оказалось легче.'],
+      ['Договориться о взаимопомощи с бывшими коллегами', {money: 340, connections: 8, reputation: 5}, 'Коллеги нашли взаимовыгодный заказ.']),
+    prison: () => yearOptions(
+      ['Узнать, как меняется порядок освобождения', {intellect: 5, reputation: 4}, 'Поступило разъяснение о документах.'],
+      ['Подать срочное прошение о пересмотре дела', 26, 'connections', {reputation: 13, happiness: 9}, {reputation: -7, happiness: -8}, 'Пересмотр назначили раньше ожидаемого.', 'Прошение вернули без ответа.'],
+      ['Написать письмо о первых днях на свободе', {happiness: 10, money: -4}, 'Мысль о доме помогла собраться.'])
+  })),
+  historical(1998, 'Августовский кризис', game => ['Киев', 'Минск', 'Одесса'].includes(game.city)
+    ? 'Россия объявляет дефолт по части государственного долга. Кризис добирается до местных рынков: поставщики меняют цены и откладывают расчёты.'
+    : 'В августе объявляют дефолт по части государственного долга. Рубль слабеет, у обменных пунктов очереди, знакомые тревожатся за свои деньги.', game => eraChoices(game, {
+    study: () => yearOptions(
+      ['Проверить выплаты и составить бюджет', {reputation: 5, intellect: 5}, 'Расходы удалось сократить без отказа от учёбы.'],
+      ['Подработать на рынке во время скачка цен', 30, 'connections', {money: 560, connections: 6}, {money: -270, health: -6}, 'Удачная подработка помогла семье.', 'Поставщики поменяли условия на ходу.'],
+      ['Встретиться с друзьями дома', {money: -22, happiness: 10}, 'Вечер помог переключиться.']),
+    army: () => yearOptions(
+      ['Уточнить сроки выдачи довольствия', {reputation: 5, intellect: 4}, 'Остаток выплаты оформили письменно.'],
+      ['Объединить заказы сослуживцев', 31, 'connections', {money: 375, connections: 7}, {money: -165, reputation: -8}, 'Общий заказ уберёг от повышения цены.', 'Поставщик не выполнил обещание.'],
+      ['Провести время с товарищами', {money: -19, happiness: 10}, 'Хороший разговор разрядил напряжение.']),
+    work: current => yearOptions(
+      [current.job === 'cooperator' ? 'Пересчитать себестоимость и договориться с клиентами' : 'Сократить расходы и проверить документы банка', {reputation: 6, money: 95}, 'Новые обязательства переждали, сохранив средства на необходимое.'],
+      ['Выкупить товар у закрывающегося поставщика', 28, 'connections', {money: 1160, connections: 9}, {money: -650, reputation: -11}, 'Партия товара быстро нашла покупателей.', 'Поставщик исчез прежде, чем отправил заказ.'],
+      ['Навестить близких и поделиться запасами', {money: -62, happiness: 12, connections: 3}, 'Помощь пришлась вовремя.'],
+      ['Найти клиентов по старым связям', {money: 410, reputation: 5, connections: 6}, 'Новые заказы закрыли часть потерь.']),
+    prison: () => yearOptions(
+      ['Уточнить правила передачи денег', {intellect: 4, reputation: 4}, 'Близким удалось объяснить порядок перевода.'],
+      ['Попросить родственников отложить перевод', 32, 'intellect', {money: 135, happiness: 7}, {happiness: -7}, 'Перевод удалось провести в более удачный момент.', 'Родные получили письмо слишком поздно.'],
+      ['Поддержать родных письмом', {money: -5, happiness: 10}, 'Ответ помог пережить тревожную неделю.'])
+  }))
+];
+
+const opportunities = [
+  event('farce', 15, 60, 1964, 1990, 'Фарцовщики у гостиницы',
+    'Знакомый предлагает перепродать иностранные пластинки и джинсы. Прибыль заметная, но у гостиницы часто проверяют документы.', [
+      safe('Отказаться и искать обычную подработку', {reputation: 6, money: 45}, 'Нашёлся скромный, но надёжный заработок.'),
+      risk('Заняться фарцовкой', 30, 'connections', {money: 690, connections: 10, reputation: -4},
+        {money: -290, reputation: -24, arrest: 2}, 'Партию разобрали за один вечер.', 'При проверке товар изъяли и завели дело.'),
+      soul('Одолжить пластинку для домашнего вечера', {money: -15, happiness: 11}, 'Пластинку слушали всей компанией.'),
+      special('Найти официальный комиссионный магазин', {money: 195, reputation: 5, connections: 3}, 'Комиссионка взяла несколько вещей на продажу.')
+    ], {category: 'Теневая экономика', foreign: true, reqStat: {key: 'connections', op: '>', value: 50}}),
+  event('bribe', 20, 70, 1960, 2010, 'Заявление под сукном',
+    'Нужные документы постоянно возвращают по мелочам. Посредник намекает, что за деньги дело можно ускорить.', [
+      safe('Потребовать письменный отказ', {reputation: 6, intellect: 3}, 'Заявление приняли с отметкой о вручении.'),
+      risk('Дать взятку', 22, 'connections', {money: 750, connections: 6}, {money: -430, reputation: -29, arrest: 2},
+        'Бумаги провели, и оплаченный заказ удалось завершить.', 'Посредника задержали, а деньги стали уликой.'),
+      soul('Оставить бумаги до понедельника', {money: -40, happiness: 10}, 'Свободный день вернул силы.'),
+      special('Попросить знакомого подсказать законный порядок', {money: 140, reputation: 5, connections: 5}, 'Удалось подать документы без посредника.')
+    ], {category: 'Бюрократия'}),
+  event('cooperative', 18, 59, 1988, 1994, 'Вывеска для кооператива',
+    'Знакомые открывают мастерскую и зовут делить заказы и расходы. Спрос есть, арендодатель требует залог.', [
+      safe('Остаться на текущей работе', {reputation: 5, money: 110}, 'За выполнение обычного плана начислили прибавку.'),
+      risk('Пойти в кооператив', 29, 'connections', {job: 'cooperator', money: 1180, connections: 9}, {money: -650, reputation: -15, happiness: -7},
+        'Первые заказы окупили аренду. Мастерская открылась.', 'Арендодатель расторг соглашение, залог пропал.'),
+      soul('Помочь друзьям придумать вывеску', {money: -32, happiness: 12}, 'Вывеску повесили над дверью ещё до открытия.'),
+      special('Войти в дело с поручительством', {job: 'cooperator', money: 390, connections: 5, reputation: 4}, 'Знакомый поручился за мастерскую, и договор подписали.')
+    ], {category: 'Перестройка'}),
+  event('mmm', 18, 80, 1994, 1994, 'Билеты МММ',
+    'Реклама обещает огромные доходы. У кассы очередь, а приятель уже рассказывает о первой выплате.', [
+      safe('Пройти мимо и оставить резерв', {reputation: 5, intellect: 3}, 'Сбережения остались под рукой, когда выплаты прекратились.'),
+      risk('Вложиться в МММ', 18, 'connections', {money: 1680, happiness: 7}, {money: -1060, happiness: -16, reputation: -7},
+        'Билеты удалось сбыть до краха пирамиды.', 'После обвала за билеты никто не заплатил.'),
+      soul('Потратить часть денег на семейную поездку', {money: -115, happiness: 15}, 'Вместо билетов МММ купили билеты на поезд.'),
+      special('Убедить близких снять вклад вовремя', {reputation: 10, happiness: 8, connections: 4}, 'Близкие забрали накопления до прекращения выплат.')
+    ], {category: 'Девяностые'}),
+  event('student-exam', 16, 24, 1955, 2087, 'Вступительные экзамены',
+    'Преподаватель предлагает пройти отбор на техническую специальность. Готовиться придётся одновременно с обычными делами.', [
+      safe('Поступить на подготовительное отделение', {job: 'student', reputation: 6, intellect: 5}, 'На подготовительном отделении подтвердили место.'),
+      risk('Сдать экзамены без подготовительного года', 27, 'intellect', {job: 'student', intellect: 9, money: 125},
+        {money: -85, happiness: -10, reputation: -6}, 'Баллов хватило на место со стипендией.', 'До проходного балла не хватило одного ответа.'),
+      soul('Провести лето в театральной студии', {money: -39, happiness: 13, intellect: 3}, 'Лето запомнилось первым настоящим спектаклем.'),
+      special('Получить рекомендацию наставника', {job: 'student', intellect: 8, reputation: 5}, 'С рекомендацией удалось попасть на подходящую программу.')
+    ], {category: 'Профессия', reqStat: {key: 'job', op: 'in', value: ['school', 'worker', 'unemployed']}}),
+  event('design-bureau', 21, 58, 1955, 2087, 'Место в конструкторском бюро',
+    'Бюро ищет человека, который умеет читать чертежи. Начальник предлагает показать свои работы.', [
+      safe('Подать заявление с рабочими чертежами', {job: 'engineer', reputation: 7, intellect: 4}, 'Бюро приняло заявление и предложило должность.'),
+      risk('Принести собственный проект', 27, 'intellect', {job: 'engineer', money: 790, reputation: 10},
+        {money: -245, reputation: -12}, 'Проект одобрили и оплатили.', 'Расчёты отправили на переделку.'),
+      soul('Сделать по чертежу модель для себя', {money: -58, happiness: 13, intellect: 4}, 'Готовую модель поставили на видное место.'),
+      special('Получить место через бывшего преподавателя', {job: 'engineer', connections: 7, reputation: 5}, 'Бывший преподаватель познакомил с руководителем бюро.')
+    ], {category: 'Профессия', reqStat: {key: 'intellect', op: '>', value: 62}}),
+  event('grievance', 18, 70, 1955, 2087, 'Кадровое разбирательство',
+    'Отдел кадров вызывает на разговор из-за нескольких жалоб. Один человек готов подтвердить вашу версию.', [
+      safe('Показать документы и объясниться', {reputation: 15, intellect: 3}, 'Документы помогли закрыть несколько вопросов.'),
+      risk('Потребовать открытого разбора', 21, 'intellect', {reputation: 24, money: 480},
+        {reputation: -19, happiness: -12, money: -200}, 'Разбор снял обвинения и принёс компенсацию.', 'Объяснение встретили новыми взысканиями.'),
+      soul('Провести вечер с теми, кто поддерживает', {money: -23, happiness: 12}, 'Разговор помог выдержать напряжение.'),
+      special('Попросить коллегу выступить свидетелем', {reputation: 16, connections: 5}, 'Показания коллеги изменили решение комиссии.')
+    ], {category: 'Репутация', reqStat: {key: 'reputation', op: '<', value: 30}}),
+  event('samizdat', 17, 65, 1965, 1987, 'Рукопись без подписи',
+    'Друг оставил рукопись, которую отказывается печатать редакция. Её можно вернуть, обсудить или пустить по рукам.', [
+      safe('Вернуть рукопись автору лично', {reputation: 5, connections: 3}, 'Автор поблагодарил за осторожность.'),
+      risk('Передать рукопись дальше', 29, 'connections', {connections: 12, happiness: 12},
+        {reputation: -38, happiness: -10, arrest: 3, persecution: 1}, 'Рукопись прочли несколько человек и вернули.', 'При разбирательстве обвинили в распространении рукописи.'),
+      soul('Обсудить прочитанное с автором', {money: -14, happiness: 11, intellect: 6}, 'О тексте проговорили до поздней ночи.'),
+      special('Найти редактора для новой версии', {connections: 8, intellect: 5}, 'Редактор согласился прочитать переработанный текст.')
+    ], {category: 'Гласность и цензура', reqStat: {key: 'intellect', op: '>', value: 51}}),
+  event('health-break', 12, 99, 1955, 2087, 'Силы на исходе',
+    'Даже знакомая дорога утомляет. Близкие предлагают освободить немного времени и заняться самочувствием.', [
+      safe('Запланировать осмотр и отдых', {health: 15, reputation: 3, money: -65}, 'После осмотра появился посильный режим.'),
+      risk('Оплатить срочный курс восстановления', 33, 'connections', {health: 24, happiness: 6, money: -90},
+        {health: -12, money: -245}, 'После курса вернулись силы.', 'Курс не подошёл и потребовал дополнительных расходов.'),
+      soul('Принять помощь и остаться дома', {health: 8, happiness: 13, money: -30}, 'Спокойные дни пошли на пользу.')
+    ], {category: 'Здоровье', reqStat: {key: 'health', op: '<', value: 47}}),
+  event('old-friend', 13, 99, 1955, 2087, 'Друг замечает усталость',
+    'Знакомый замечает, что в последнее время ничто не радует. Он предлагает встретиться и помочь с делами.', [
+      safe('Рассказать о том, что тревожит', {happiness: 14, reputation: 4, connections: 4}, 'После разговора стало проще обратиться за поддержкой.'),
+      risk('Сменить обстановку на целую неделю', 32, 'connections', {happiness: 24, health: 5, money: -75},
+        {happiness: -9, money: -180}, 'Поездка оказалась долгожданной передышкой.', 'Поездка сорвалась, а сборы только утомили.'),
+      soul('Вернуться к давнему любимому занятию', {happiness: 18, money: -45}, 'Привычное занятие вернуло интерес к обычным делам.')
+    ], {category: 'Поддержка', reqStat: {key: 'happiness', op: '<', value: 40}})
+];
+
+const service = catalog('service-', 18, 29, 'Военная служба', 'health', `
+Посылка в часть|Вместе с праздничной почтой в часть привезли несколько тяжёлых посылок. На одной стёрся номер подразделения.|Передать посылку дежурному~r=5~Дежурный выяснил имя получателя.|Разыскать получателя через соседнюю часть~b=9 r=6~r=-7 s=-5~Получатель успел забрать посылку перед отъездом.~У дежурных возникли вопросы к порядку передачи.|Написать письмо с благодарностью домой~m=-5 s=10~Домой отправили весточку о празднике.
+Состязание частей|Спортивная команда ищет замену заболевшему участнику. Готовиться к соревнованию осталось неделю.|Помочь с тренировкой~h=5 r=4~Команда отработала сложный этап.|Войти в заявку на главный этап~r=11 s=10~h=-10 r=-5~Команда получила кубок.~На последнем этапе случился ушиб.|Рисовать афишу для команды~m=-6~Афишу повесили у входа в зал.
+Семейный визит|Родные добрались до города рядом с частью. Уехали ненадолго, и часы встречи нужно согласовать заранее.|Подать рапорт на время посещения~b=4 r=5~Встреча прошла без спешки.|Попросить продлить посещение~b=7 s=12~r=-9 s=-6~Дежурный разрешил задержаться до вечера.~Из-за несогласованной задержки объявили выговор.|Устроить небольшой пикник рядом с частью~m=-13 s=11~С собой удалось передать гостинец.
+`).map(card => ({...card, reqStat: {key: 'job', op: '=', value: 'soldier'}}));
+
+const custody = catalog('custody-', 18, 99, 'Под стражей', 'intellect', `
+Книга с разорванным корешком|В читальном уголке остался потрёпанный том. В нём несколько страниц вот-вот выпадут.|Попросить материалы для ремонта~i=5 r=5~Повреждённую книгу вернули на полку.|Взяться за ремонт всей полки~i=9 r=8~r=-6 s=-5~Удалось вернуть на полку несколько хороших книг.~Материалов не хватило на обещанный ремонт.|Перечитать уцелевшие главы~i=3 s=9~На несколько вечеров нашлось чтение.
+Письмо из дома|Родные говорят, что о деньгах лучше пока не беспокоиться. На ответ выдали один лист.|Ответить коротко и по делу~r=5 b=4~Родные получили ясный ответ.|Попросить взять дополнительный лист~s=11 b=6~r=-6 s=-5~Разрешили длинное письмо.~Просьбу отклонили, отправку отложили.|Сделать небольшой рисунок на полях~s=10 m=-3~Рисунок дошёл вместе с письмом.
+Время прогулки|Из-за дождя изменили распорядок. Время во дворе неожиданно совпало с получением писем.|Договориться о новом времени~h=4 r=4~Время удалось уточнить у дежурного.|Предложить общий перенос прогулки~h=7 b=7~r=-7 s=-5~Договорённость помогла всему отряду.~Предложение вернули без обсуждения.|Посидеть у окна и смотреть на дождь~s=8 m=-2~Тихие минуты помогли прийти в себя.
+Прошение на столе|Осталась одна копия прошения, и её можно дополнить выписками. Ответ обещают позднее.|Сверить даты и изложить факты~r=7 i=4~Прошение приняли к рассмотрению.|Просить рассмотреть дело раньше срока~r=14 s=8~r=-7 s=-6~Ответ пришёл раньше обещанного.~Прошение вернули для исправлений.|Набросать планы после освобождения~s=10 i=3~На бумаге появились возможные первые шаги.
+Обучение в мастерской|В мастерской предлагают освоить новую работу. Мест немного, но часть занятий открыта для всех.|Начать с пробного занятия~i=6 r=4~Новый навык дался без спешки.|Взять дополнительное задание~m=175 i=8~h=-8 r=-6~Задание удалось выполнить в срок.~За ошибкой последовало взыскание.|Сделать небольшую вещь для родных~s=10 m=-7~Вещь сохранили до ближайшей передачи.
+Вести по радио|Перед вечерней передачей сломался динамик. Несколько человек пытаются понять, где повреждение.|Сообщить тому, кто отвечает за ремонт~r=5 i=3~Динамик заработал к следующему выпуску.|Предложить проверить старый запасной аппарат~r=10 b=5~r=-8 s=-5~Старый аппарат оказался исправен.~Аппарат не включился, а время уже вышло.|Рассказать товарищам знакомую историю~s=9 b=3~Рассказ подхватили другими воспоминаниями.
+`).map(card => ({...card, reqStat: {key: 'job', op: '=', value: 'prisoner'}}));
+
+const earlyYears = catalog('early-', 0, 6, 'Раннее детство', 'connections', `
+Бирка из роддома|После выписки осталась бумажная бирка. Родные спорят, куда её положить, чтобы она не затерялась.|Вложить бирку в семейный альбом~r=4~Бирка осталась рядом с первой фотографией.|Заказать памятную рамку~s=10 b=5~m=-11 s=-4~Мастер сделал рамку и пригласил семью в мастерскую.~Мастерская потеряла заказ.|Пришить к одеялу памятную ленту~m=-3~У одеяла появилась своя примета.|bracelet
+Педальный конь|В универмаге остался выставочный педальный конь. Одно колесо поскрипывает.|Попросить продавца осмотреть игрушку~i=3 r=4~Продавец нашёл новую втулку.|Купить коня с рук на разбор~m=26 s=10~m=-15 s=-5~После ремонта конь оказался как новый.~Трещина под сиденьем проявилась слишком поздно.|Устроить скачки на игрушечном коне соседей~m=-4~У двора появились свои скачки.|pony;1958;1993
+Неваляшка|На полу стоит яркая неваляшка. Соседские дети хотят обменять её на коробку кубиков.|Договориться об обмене на вечер~b=3~Все игрушки вернулись домой.|Поменять её на набор без осмотра~m=19 s=9~m=-7 s=-4~В коробке оказалось много редких кубиков.~У коробки не хватало половины деталей.|Оставить неваляшку у детской кровати~m=-3~Колокольчик стал знакомым звуком дома.|tumbler
+Первый день в яслях|В раздевалке каждому выдают крючок со своим рисунком. На прощание многие дети плачут.|Договориться о коротком первом дне~h=3 r=5~Привыкание прошло без спешки.|Попросить перевести в группу со знакомыми~b=8 s=9~s=-7 m=-8~В новой группе уже был знакомый ребёнок.~Перевод сорвался в последний момент.|Оставить в кармане кусочек домашней ткани~m=-2~Знакомая ткань успокаивала в тихий час.|nursery
+Горшок с геранью|На детсадовском окне освобождают место для зелёного уголка. Семейная герань как раз зацвела.|Принести один укоренённый отросток~b=3~Герань прижилась в группе.|Пообещать цветы для всех групп~b=9 s=8~m=-11 r=-5~Соседи помогли собрать целую рассаду.~Пока искали горшки, половина рассады засохла.|Нарисовать цветы для воспитательницы~m=-3 i=2~Рисунок повесили рядом с горшком.|geranium
+К бабушке в деревню|У бабушки в селе свободная комната. Последний участок дороги обычно едут на попутной машине.|Поехать рейсовым автобусом~m=-5 h=4~Семья добралась засветло.|Рассчитывать на попутку~m=21 b=5~m=-14 h=-5~Нашёлся водитель, знакомый бабушки.~Машина не приехала, пришлось ждать следующего автобуса.|Собирать ягоды у бабушки~m=-4 h=4~Вечером ягоды ели с молоком.|village
+Меловые классики|После дождя в асфальте остались лужи. Старшие ребята принесли несколько кусков мела.|Нарисовать клетки на сухом месте~h=3 b=3~Игра не мешала людям у подъезда.|Устроить турнир через весь двор~s=11 b=5~h=-6 r=-4~Двор играл целый вечер.~На мокрой клетке поскользнулись, турнир пришлось закончить.|Нарисовать лужам цветные берега~m=-2~Даже после игры рисунки остались.|chalk
+Доска у песочницы|Старшие принесли во двор доску. На ней можно нарисовать корабль или сделать качели.|Попросить взрослого убрать занозы~h=3 r=4~Доску очистили и закрепили.|Устроить качели с соседями~s=12 b=4~h=-10 m=-5~Во дворе появились крепкие качели.~Крепёж подвёл при первой пробе, пришлось лечить ушиб.|Превратить доску в палубу~m=-3~Песочница на весь вечер стала морем.|sandbox
+Термометр под мышкой|Поднялась температура, а на утро был назначен детсадовский утренник.|Дождаться осмотра педиатра~h=9 r=4~После осмотра началось спокойное восстановление.|Попытаться успеть к утреннику~s=11 b=3~h=-14 s=-5~Самочувствие успело улучшиться до праздника.~Ребёнок переутомился, пришлось остаться дома ещё на несколько дней.|Попросить родных устроить утренник дома~m=-5 s=11~Дома получился маленький праздник.|fever
+Корь в группе|В детском саду сообщили о заболевшем ребёнке. Семья перестраивает планы на ближайшие дни.|Уточнить порядок у врача и ждать дома~h=6 r=5~Семья сумела вовремя организовать уход.|Срочно искать свободный приём в другой поликлинике~h=10 b=5~m=-12 h=-6~В другом отделении приняли раньше.~На дорогу ушёл день, свободного приёма не было.|Устроить тихое чтение у окна~m=-3 s=9~Книжки сделали домашние дни короче.|measles
+Строгий тихий час|Младшие не хотят спать, а воспитательница просит соблюдать тишину. Родители замечают, что ребёнок возвращается расстроенным.|Поговорить о мягком распорядке~r=5 b=3~В группе разрешили тихо лежать с книжкой.|Попросить администрацию сменить группу~s=11 b=7~s=-8 r=-5~В новой группе оказалось спокойнее.~Ребёнку пришлось прощаться с друзьями, а место не дали.|Устроить после садика час игр без распорядка~m=-3 s=11~Домашний час ждали каждый день.|naptime
+Первый испуг перед грозой|Ночью загремело так близко, что весь дом проснулся. Родные решают, как успокоить малыша.|Объяснить грозу простыми словами~i=4 s=4~Знакомый голос помог снова заснуть.|Переселиться на ночь к соседям~b=8 s=9~m=-7 s=-5~Соседи пустили семью в тихую комнату.~В новом доме оказалось ещё шумнее.|Послушать сказку под одеялом~m=-2 s=10~Сказку потом просили повторить.|thunder
+Санки на верёвке|На первых санках порвалась верёвка. Утром соседи собираются кататься с холма.|Заменить верёвку и проверить крепление~h=4 i=2~До холма добрались спокойно.|Попросить обменять их на быстрые санки~s=12 b=5~h=-9 m=-8~Выдали крепкие санки, на которых легко править.~Быстрые санки перевернулись на первом спуске.|Возить на санках плюшевого зверя~m=-3~Весь двор устроил игрушечное путешествие.|sled
+Ужин без уговоров|За ужином взрослые снова спорят, нужно ли доедать кашу. Ребёнок отворачивается от тарелки.|Предложить маленькую порцию~h=4 r=4~Ужин прошёл без долгих уговоров.|Заменить кашу новым блюдом на неделю~h=7 s=8~m=-8 s=-5~Новое блюдо понравилось всей семье.~Дорогие продукты остались нетронутыми.|Вместе придумать рисунок из кусочков яблока~m=-4 s=9~Собственное угощение понравилось сразу.|supper
+Потерянная варежка|На прогулке исчезла варежка. Может быть, она осталась в трамвае вместе с пакетом.|Позвонить в бюро находок~b=3 m=-2~Пакет сохранили на конечной.|Поехать искать по всему маршруту~m=17 b=5~m=-10 h=-5~Вожатая из соседней группы вернула пакет.~На конечной ничего не нашли.~30|Связать дома варежку другого цвета~m=-5~Разные варежки стали любимой парой.|mitten
+Детсадовская ёлка|На утренник нужно сделать костюм. В коробке нашлись бумага и пара старых лент.|Согласовать простой костюм с группой~r=5 i=2~Костюм был готов за вечер.|Договориться взять костюм в театре~s=12 b=6~m=-13 r=-4~Из театра дали красивый костюм в нужном размере.~Костюм пришлось вернуть перед самым утром.|Сшить корону из бумаги вместе~m=-4 s=10~Корону потом хранили в коробке с игрушками.|matinee
+Гость в детской|Родные привезли из гостей тихого котёнка. Теперь надо решить, кто будет за ним ухаживать.|Уточнить у ветеринара, что ему нужно~h=4 b=3~Котёнок быстро освоился в новом доме.|Оставить котёнка у себя на пробу~s=12 b=5~m=-12 s=-7~Котёнок привык к дому и нашёл главное тёплое место.~У членов семьи обнаружилась аллергия, нашли другой дом.|Сделать котёнку коробку с мягкой тканью~m=-4 s=9~Котёнок сразу уснул в коробке.|kitten
+`);
+
+const pioneers = catalog('pioneer-', 7, 14, 'Школа и пионерия', 'intellect', `
+Первое сентября|У входа в школу строится линейка. Классный руководитель просит кого-нибудь прочитать стихотворение.|Помочь расставить ребят по парам~r=5 b=3~Линейка началась по расписанию.|Вызваться читать перед всей школой~r=9 s=10~s=-7 r=-4~После стихотворения класс зааплодировал.~От волнения стихотворение пришлось подсказать.|Подарить цветы любимому учителю~m=-5 s=9~Учитель поставил букет на видное место.|september
+Звёздочка октябрёнка|Младший класс готовится к приёму в октябрята. На стенде висит список дежурств для каждой звёздочки.|Вместе разобрать простые правила~r=6 i=3~Дежурства распределили без споров.|Вызваться собрать свою звёздочку~b=8 r=8~r=-7 s=-5~Ребята охотно поддержали нового организатора.~Никто не пришёл к условленному времени.|Попросить близких прийти на праздник~m=-4 s=10~После приёма вместе сделали снимок.|october;1950;1990
+Красный галстук|Отряд принимает новых пионеров. Разучивают обещание и договариваются о первом общем деле.|Помочь подготовить зал к приёму~r=6 b=4~На церемонии всем хватило места.|Предложить отряду свой годовой план~r=10 b=7~r=-8 s=-5~Вожатая взяла несколько дел из плана.~План хотели утвердить сразу, но у класса не было сил.|Сохранить галстук в семейном альбоме~m=-4 s=10~В альбоме рядом записали этот день.|scarf;1950;1990
+Макулатурный спор|Классы собирают газеты и картон. Для победы не хватает нескольких килограммов бумаги.|Отнести только согласованные стопки~r=6 b=4~Сбор прошёл без претензий от жильцов.|Организовать сбор на весь квартал~m=30 r=9~r=-8 m=-7~Класс взял первое место и получил приз.~Класс потерял часть времени из-за пустых обещаний.|Обменять старые журналы у друзей~m=-4 i=5~Дома осталось несколько интересных рассказов.|paper;1950;1991
+Весы для металлолома|На школьном дворе появились весы. Принимают старые радиаторы, тазы и сломанный велосипед.|Спросить разрешение у хозяев вещей~r=5 b=3~На пункт принесли только ненужные вещи.|Собрать груз из нескольких дворов~m=34 b=6~h=-8 r=-5~Удалось собрать и сдать рекордный груз.~По дороге тележка сломалась, пришлось разгружать.|Придумать школьный плакат о сборе~m=-5 s=9~Плакат привлёк ещё несколько семей.|scrap;1950;1991
+Пионерлагерь у моря|В школе раздают путёвки на морскую смену. Большинству придётся ждать следующего года.|Встать в очередь вместе с классом~r=5 b=3~Запись приняли без проблем.|Попробовать поехать по отказной путёвке~h=6 s=13~m=-32 s=-6~Место освободилось прямо перед отъездом.~Путёвку отдали другой семье, дорогу уже оплатили.|Устроить с друзьями лето у местной речки~m=-8 h=4~Речка стала ежедневным местом встреч.|camp;1950;1991
+Отряд у костра|У лагерного отряда конкурс песен. До вечера можно успеть выучить простую песню или придумать свою.|Раздать слова и отрепетировать вместе~r=5 b=3~Весь отряд успел выучить припев.|Выйти с песней собственного сочинения~s=13 r=8~s=-6 r=-4~Припев потом пел весь лагерь.~Слова забылись в самом начале.|Петь только у своего костра~m=-4 s=10~Вожатый пришёл послушать последнюю песню.|campfire;1950;1991
+Драка за портфель|На перемене два ученика схватились из-за портфеля. По коридору уже идут учителя.|Позвать дежурного учителя~r=7 b=2~Спор удалось разобрать без новых синяков.|Вмешаться без помощи взрослых~r=8 b=5~h=-11 r=-8~Ребята остановились и вернули портфель.~После разбирательства остались синяки и замечание.|Проводить обиженного одноклассника домой~m=-4 s=9~По дороге удалось поговорить без зрителей.|schoolyard
+Гул школьной сирены|На занятии по гражданской обороне прозвучала учебная сирена. После урока все спрашивают про ядерную войну.|Уточнить у учителя смысл тренировки~i=6 r=5~Разговор уменьшил тревогу в классе.|Вызваться выступить о тревоге перед классом~i=8 b=6~s=-8 r=-5~Школьники смогли высказать то, чего боялись.~Поспешное выступление усилило тревогу.|Поговорить вечером с близкими~m=-3 s=10~Разговор дома помог спокойно уснуть.|siren;1968;1989;detente,arms,reform
+Кабинет НВП|Старшеклассники соревнуются на уроке НВП в сборке учебного автомата. Младших пригласили посмотреть и обсудить гражданскую оборону.|Остаться послушать объяснение учителя~i=5 r=5~Больше всего запомнился разговор о безопасности.|Взяться рассказать младшим о смысле учебной тревоги~i=8 r=8~s=-6 r=-5~Учитель поддержал рассказ на классном часе.~Выступление пришлось прервать из-за волнения.|Записать вопросы для разговора дома~m=-3 s=9~За ужином удалось обсудить страхи.|nvp;1968;1990
+Жвачка у интуристов|Школьники увидели иностранную группу возле гостиницы. У кого-то есть жвачки и яркие обёртки.|Поздороваться и пройти мимо~r=5 i=3~С туристами обменялись парой иностранных слов.|Обменять значок на жвачку~m=42 b=6~m=-14 r=-7~За редкую упаковку коллекционер предложил обмен.~Дежурный вызвал классного руководителя, значок остался у туриста.|Нарисовать себе яркую обёртку~m=-4 s=9~Обёртка стала частью школьного альбома.|gum;1957;1991;thaw,rivalry,detente,arms,reform,collapse;import
+Письмо из Болгарии|Класс получил открытки от школьников из Варны. Есть время подготовить общий ответ.|Сверить перевод с учителем~i=6 r=4~Ответ приняли для школьного стенда.|Отправить письмо всей параллелью~b=8 i=7~m=-9 s=-5~Пришли десятки ответов из нескольких классов.~Посылку вернули из-за неверного адреса.|Сделать личную открытку с видом города~m=-5 s=9~Адресат прислал фотографию моря.|penpal;1957;1990;thaw,detente,reform
+Линейка у школьного знамени|Утром у знамени забыли поставить дежурный отряд. Можно помочь и успеть к первому уроку.|Сообщить классному руководителю~r=6 b=3~Дежурных нашли вовремя.|Собрать новый отряд из двух классов~r=10 b=8~r=-6 s=-5~Вся линейка началась без задержки.~Участники перепутали время и пропустили начало.|Вместе оформить альбом отряда~m=-4 s=10~В альбом попали смешные подписи класса.|banner;1950;1990
+Поезд в город-герой|Школа готовит экскурсию. На дорогу просят принести список вещей и заранее сдать деньги.|Уточнить расписание и собрать вещи по списку~r=5 i=4~Поездку начали вовремя.|Попытаться устроить дополнительный день экскурсии~h=5 s=12~m=-17 r=-5~Группе выделили ещё один день.~Вторую ночь пришлось отменить после оплаты.|Написать очерк для стенгазеты~m=-5 s=9~Очерк прочитали на классном часе.|excursion
+Секция во дворце пионеров|В субботу проводят набор в секции, но в одну комнату претендуют шахматисты и гимнасты.|Узнать расписание и выбрать подходящую группу~i=5 r=4~Кружок легко вписался в неделю.|Попробовать пройти сложный отбор в секцию~h=8 s=11~h=-9 s=-5~Тренер пригласил на регулярные занятия.~На испытании не хватило сил для последнего задания.|Пойти вместе с другом на открытое занятие~m=-6 s=10~Друзья выбрали себе одно общее дело.|palace;1950;1991
+Юный корреспондент|Школьной газете не хватает заметки о дворе. Два соседа по-разному рассказывают об одном событии.|Уточнить детали у очевидцев~i=6 r=5~В номер попала точная короткая заметка.|Предложить текст районной газете~m=39 r=9~s=-5 r=-5~Детскую заметку напечатали с подписью.~В редакции нашли неточность и вернули текст.|Нарисовать двор для стенгазеты~m=-6 s=10~Одноклассники хорошо узнали себя на рисунке.|reporter
+Надпись на парте|После перемены на парте обнаружили чужое признание в дружбе. Учитель просит разобраться, чья запись.|Аккуратно стереть надпись с разрешения~r=5 i=2~Парта осталась чистой и никто не рассорился.|Взяться узнать автора и примирить соседей по парте~b=9 s=8~r=-7 s=-5~Инициатива помогла новым друзьям познакомиться.~Подозрение пало на человека, который ни при чём.|Написать другу обычную записку~m=-3 s=10~Записка доехала домой в кармане.|desk
+`);
+
+const youngAdults = catalog('coming-', 15, 22, 'Юность', 'intellect', `
+Билет в стройотряд|Стройотряд набирает новичков. Поездка займёт почти всё лето, а точное место работы ещё не объявили.|Уточнить условия, жильё и оплату~r=5 i=4~Нашёлся отряд с понятной сметой работ.|Записаться на дальнюю вахту~m=420 b=8~h=-12 m=-110~За полную смену выплатили хорошие деньги.~Поездка сорвалась после тяжёлой недели.|Провести каникулы с друзьями у реки~m=-22 s=12~До осени осталась компания для встреч.|brigade;1959;1991
+Рок-н-ролл на костях|Знакомый показывает пластинку на старом рентгеновском снимке. Сквозь плёнку видны рёбра, а из динамика слышен незнакомый рок-н-ролл.|Узнать, можно ли услышать запись у хозяина~i=4 r=5~Пластинку послушали на месте.|Пустить несколько копий по знакомым~m=220 b=8~m=-110 r=-16~За запись предложили деньги и редкие пластинки.~Копии забрали на разборе, пришлось объясняться.|Остаться на вечер с музыкой и друзьями~m=-10 s=12~Мелодию напевали всю неделю.|bones;1950;1968;stalin,thaw,crisis,rivalry;import
+Первая любовь|У кассы кинотеатра встречается человек, с которым давно хочется поговорить. На вечер осталось всего два места.|Просто предложить встретиться в выходные~b=4 r=5~На спокойный разговор согласились.|Купить оба билета и сразу позвать в кино~s=16 b=5~m=-17 s=-9~Вечер оказался началом близкой дружбы.~Пришлось смотреть фильм в одиночку.|Написать письмо и не торопить ответ~m=-5 s=10~В письме получилось сказать самое важное.|first-love
+Список к комсомольскому собранию|На собрании обсуждают помощь после паводка. Староста спрашивает, кто может собрать сведения о семье с первого этажа.|Вести протокол и записать просьбы~r=6 i=3~По списку удалось собрать нужные вещи.|Предложить объединить работу двух групп~r=10 b=8~r=-8 s=-5~Соседняя группа подключилась и дело пошло быстрее.~Из-за спора комитет отменил новый план.|В свободный вечер самостоятельно помочь семье~m=-18 s=11~Получилось просушить вещи и поговорить.|komsomol;1950;1990
+Ночной поезд перед экзаменом|Экзамен проходит в другом городе. На ближайший поезд продают только дорогие места.|Узнать внеплановые даты экзамена~r=5 i=4~Нашёлся подходящий резервный день.|Поехать ночью без места до конечной~m=190 r=7~h=-10 m=-80~С поездом повезло и экзамен удалось сдать.~Ночь ушла на пересадки, на экзамен не успели.|Готовиться с другом в тихом читальном зале~m=-15 i=5~Следующая попытка уже не пугала.|exam-train
+Чертёжный планшет|Наставник отдал учебный чертёж с незаполненными полями. Его можно закончить и показать на конкурсе.|Сверить расчёты на консультации~i=6 r=5~На чертеже удалось исправить важную ошибку.|Показать собственный вариант конкурсной комиссии~m=270 r=9~m=-48 s=-7~За ясный чертёж дали премию.~Жюри вернуло заявку из-за ошибки в масштабе.|Набросать любимый дом в свободном масштабе~m=-12 s=10~Набросок захотелось сохранить.|blueprint
+Первая заводская смена|Наставник предлагает посмотреть работу цеха, пока освободилось место на проходной.|Попросить дневную ознакомительную смену~i=5 r=5~На обходе объяснили, у кого учиться дальше.|Взять оплачиваемое сложное задание~m=380 b=6~h=-11 r=-8~Задание завершили раньше бригады.~Непривычный темп привёл к ушибу и взысканию.|Расспросить наставника о жизни вне завода~m=-17 s=10~За обедом удалось узнать друг друга.|shift
+Паспорт за стеклом|Первый паспорт наконец готов. В записи о месте рождения закралась буква, которой там быть не должно.|Попросить исправить запись официально~r=6 i=3~Исправление утвердили до следующего месяца.|Попросить срочное переоформление к поездке~b=9 m=115~m=-70 r=-7~Исправление успели выдать перед отъездом.~На поезд пришлось вернуть билет.|Сделать отдельный портрет на память~m=-13 s=9~У семьи осталось фото взросления.|passport
+Общежитие после отбоя|Соседи по этажу зовут к себе с гитарой. Дежурный уже прошёл последнюю проверку.|Договориться о встрече до тихого часа~r=5 b=4~Музыка никому не помешала.|Попробовать устроить ночной концерт~b=8 s=13~r=-10 s=-5~На концерт пришли ребята с двух этажей.~После жалобы всем участникам сделали выговор.|Записать свою песню и обменяться кассетой~m=-17 s=11~Песня осталась у всей комнаты.|dorm;1968;1998
+Абонемент в киноклуб|В киноклубе показывают фильмы нескольких стран. Места на цикл уже почти разобрали.|Купить билет на один официальный показ~m=-12 i=5~После фильма удалось остаться на обсуждении.|Подать заявку сразу на цикл для компании~b=8 s=10~m=-62 s=-6~Для компании нашли освободившиеся абонементы.~Заявку отменили, вернули только часть оплаты.|Снять с друзьями короткую немую сцену~m=-19 s=12~Сцену потом показывали на домашних встречах.|filmclub;1957;1991;thaw,detente,reform
+Выступление на кухне|Друзья разучили новые песни, но клуб отвёл сцену другому коллективу.|Назначить репетицию в разрешённое время~r=5 i=3~Материал успели подготовить к следующей заявке.|Собрать платное выступление во дворе~m=235 b=7~m=-88 r=-11~На выступление пришли даже незнакомые слушатели.~Показ закрыли после жалобы, пришлось вернуть деньги.|Петь для друзей на кухне~m=-14 s=12~Остались хорошие песни и благодарные слушатели.|kitchen-rock;1965;1993
+Маленькое горное общежитие|Туристический кружок приглашает в поход. У части участников ещё нет привычки к длинным переходам.|Записаться на подготовительную прогулку~h=6 i=5~Усталость на маршруте стала предсказуемой.|Попробовать маршрут опытной группы~h=9 s=11~h=-13 s=-5~Сложный подъём прошли без потерь.~Под конец спуска пришлось идти с больной ногой.|Сделать альбом с видами короткой тропы~m=-16 s=9~В альбоме остались лучшие виды.|summit
+Стол у редакции|В редакции студенческой газеты читают письма о плохом общежитии. Номер почти набран.|Проверить каждую жалобу перед печатью~r=6 i=5~Редактор нашёл место для точной заметки.|Попросить вёрстку целой полосы~r=12 b=7~r=-11 s=-6~После публикации вызвали начальника общежития.~Номер задержали, часть текста пришлось убрать.|Предложить соседям самим обновить комнату~m=-24 s=10~Комната стала местом, куда приятно возвращаться.|press;1960;1996
+Билет на поездку к морю|Несколько товарищей нашли групповой билет. Платить нужно до того, как ясно, кто сможет поехать.|Собрать подтверждения от всех друзей~r=5 b=4~Поездку согласовали без потерь.|Выкупить пустые места в надежде на попутчиков~m=300 b=8~m=-126 s=-6~Перед отправлением нашлись все пассажиры.~За свободные места деньги не вернули.|Провести выходные с теми, кто остался~m=-22 s=11~Без поездки всё равно получилось небольшое приключение.|group-trip
+Вечерняя смена в книжном|Продавец просит помочь принять коробки. За вечер предлагают оплату и право выбрать одну книгу.|Уточнить объём работы и ставку~m=95 r=5~Работу оплатили и выдали книгу.|Взять все коробки на себя~m=315 i=5~h=-10 m=-68~Управиться удалось к закрытию.~Не хватило времени, понадобилась помощь за свой счёт.|Прочитать книгу прямо в пустеющем зале~m=-9 i=5~Чтение оказалось лучше заработка.|bookshift
+Аттестат в соседней папке|Перед выпуском администрация потеряла часть школьных документов. Подлинник нужен для заявления.|Попросить справку и узнать сроки~r=7 i=3~Дубликат подтвердили письменно.|Срочно искать подлинник по нескольким архивам~b=8 i=6~m=-78 s=-7~Документ нашёлся в чужой папке.~Время приёма истекло раньше поисков.|Устроить встречу выпускников во дворе~m=-20 s=11~Из-за бумаг выпускной не пришлось отменять.|certificate
+Посылка другу в армию|Друг прислал с места службы список простых вещей. На почте есть ограничения по весу.|Точно следовать списку и правилам пересылки~r=6 b=4~Посылку приняли и доставили целой.|Собрать общую посылку от всего двора~b=10 s=10~m=-95 s=-6~Двор отправил несколько нужных посылок.~Почта вернула коробку после долгого ожидания.|Написать обычное длинное письмо~m=-7 s=11~Друг бережно хранил письмо до демобилизации.|army-parcel
+`);
+
+const midlife = catalog('midlife-', 23, 55, 'Взрослая жизнь', 'connections', `
+Очередь за сапогами|С утра в универмаге обещают завоз зимних сапог. У входа уже ведут очередь на листке.|Записаться в очередь и дождаться размера~r=5 m=-70~Сапоги удалось купить по обычной цене.|Отдать деньги посреднику за право пройти первым~m=330 b=6~m=-210 r=-13~Посредник нашёл подходящую пару со склада.~Посредник исчез, сапоги закончились.|Отнести старую пару хорошему сапожнику~m=-38 s=9~Старые сапоги пережили зиму.|boots;1972;1991
+Болгария по профсоюзной путёвке|Профком распределяет места на поездку в Болгарию. В последнюю группу можно ещё успеть.|Подать анкету с обычной очередью~r=7 b=4~Анкету приняли и назвали ближайший срок.|Внести оплату за последнюю путёвку~m=390 s=12~m=-255 r=-7~Открылось место, поездка обошлась дёшево.~Место сняли, часть оплаты удержали.|Съездить отдыхать на знакомое побережье~m=-70 s=12 h=3~Море удалось увидеть без долгих собеседований.|bulgaria;1958;1991;thaw,detente,reform,collapse
+Командировка в ГДР|На предприятии ищут участника обмена с заводом в ГДР. Нужно привезти домой наблюдения о работе коллег.|Подготовить отчёт и ехать по направлению~r=8 i=6~Отчёт обсудили на общем собрании.|Выкупить редкое импортное оборудование на пробу~m=760 b=9~m=-380 r=-15~На оборудование нашёлся покупатель, обмен окупился.~Таможенная проверка закончилась изъятием груза.|Сохранить билеты и отправить домой открытку~m=-38 s=10~Открытку поставили возле семейных фотографий.|gdr;1969;1989;detente,reform;import
+Номер журнала в машинописи|У знакомой машинистки сохранилась копия книги, которая не вышла в печать. У экземпляра много желающих.|Вернуть рукопись после чтения~r=6 i=5~Хозяин получил текст обратно целым.|Передать копии в несколько читательских компаний~b=13 s=10~r=-28 a=2 p=1~Текст прочли и вернули без лишних разговоров.~Разбирательство закончилось делом о распространении запрещённого текста.|Устроить закрытое чтение с автором~m=-25 s=11 i=5~Больше всего читатели обсуждали последнюю главу.|typescripts;1970;1987;detente,arms,reform
+Хозяйственная очередь за стеклом|Из магазина звонят, что ожидают оконные рамы. В заявках несколько месяцев задержки.|Оформить письменный заказ~r=6 b=4~Дата выдачи появилась в квитанции.|Выкупить партию остатков у торговца~m=635 b=8~m=-290 r=-9~Часть рам досталась соседям, остальное продали.~Размеры рам не подошли, покупатели потребовали деньги обратно.|Провести день с семьёй вместо очереди~m=-34 s=10~С ремонтом решили переждать до весны.|frames;1973;1993
+Талоны на сахар|В расчётном столе выдали талоны на следующий месяц. Знакомый просит поменять их на масло.|Записать положенное и распределить на месяц~r=6 i=4~Семье хватило запасов до нового распределения.|Собрать обмен между соседними домами~m=390 b=8~m=-145 r=-10~Обмен помог найти всё нужное и сэкономить.~Часть талонов оказалась недействительной.|Испечь пирог из оставшихся продуктов~m=-38 s=12~Гости принесли чай и варенье.|coupons;1988;1992;reform,collapse,post
+Импортный магнитофон|Сослуживец показывает японский магнитофон. За аппарат просят почти две зарплаты.|Проверить аппарат в комиссионном магазине~r=6 i=5~Технику приняли на проверку и выписали документы.|Пустить аппарат в перепродажу знакомым~m=860 b=10~m=-460 r=-20~Покупатель заплатил за редкую модель.~Магнитофон изъяли при проверке, деньги пришлось вернуть.|Послушать запись у сослуживца~m=-22 s=11~Для домашнего вечера нашлась музыка.|tape-deck;1970;1991;detente,arms,reform,collapse;import
+Подписи под открытым письмом|В районе обсуждают письмо в газету о местной свалке. Несколько жильцов готовы назвать свои имена.|Собрать проверяемые факты и написать в редакцию~r=7 i=5~Редакция отправила запрос в район.|Подписать письмо от всего района~r=13 b=9~r=-14 s=-7~После публикации объявили о выезде комиссии.~Часть подписей отозвали, разбирательство затянулось.|Вместе расчистить аллею у дома~m=-29 s=11 h=3~В аллее снова гуляют с детьми.|open-letter;1986;1991;reform,collapse
+Комната под частную мастерскую|В 1988 году знакомые обсуждают новые возможности для кооперативов. В пустой мастерской уже есть верстаки и свет.|Проверить договор и начать с небольшого заказа~r=7 m=155~Клиенты получили первый заказ в срок.|Вложиться и открыть кооператив~j=cooperator m=1420 b=11~m=-640 r=-15~После первых продаж мастерская вышла в плюс.~Собранные деньги ушли в неудачную аренду.|Помочь друзьям восстановить мебель для клуба~m=-43 s=12~Стулья пригодились на собрании.|workshop-1988;1988;1988;reform
+Первый ваучер|На руки выдали приватизационный чек. У проходной скупщики предлагают деньги сразу.|Оставить чек до проверки условий~r=5 i=5~Появилось время сравнить предложения.|Вложить чек в незнакомый фонд~m=1430 b=7~m=-720 s=-12~Вложения удалось вовремя обменять на деньги.~Фонд перестал отвечать, чек пропал.|Отдать деньги от продажи на нужды семьи~m=105 s=11~В доме заменили сломанные вещи.|voucher;1992;1994;post
+Вторая касса МММ|У знакомых первая выплата совпала с телевизионной рекламой. Теперь они предлагают купить билеты вместе.|Отказаться и сохранить резерв~r=6 i=5~После обвала у семьи осталось на повседневные расходы.|Купить билеты МММ у кассы~m=1750 b=7~m=-1290 s=-17 r=-9~Билеты удалось продать до остановки выплат.~После остановки выплат билеты ничего не стоили.~19|Уехать на выходные и выключить телевизор~m=-68 s=12~За два спокойных дня споры о рекламе сошли на нет.|mmm-window;1994;1994;post
+Место в челночном автобусе|Знакомые едут за товаром за границу. Одно место и доля в грузе пока свободны.|Начать с небольшого заказа и документов~r=6 m=190~С покупателями рассчитались по плану.|Купить место в автобусе и большую партию~m=1680 b=10~m=-850 h=-9~Новые покупатели разобрали груз за неделю.~Поездка сорвалась после того, как товар оплатили.|Привезти из поездки только подарки~m=-83 s=14~Подарки напомнили о редких встречах.|shuttle;1991;1999;collapse,post
+Угроза у рыночного ряда|Чужие люди требуют деньги за торговое место. Продавцы спорят, кому сообщать о давлении.|Зафиксировать требования и обратиться за помощью~r=8 b=4~Другие продавцы поддержали официальное обращение.|Понести убытки и срочно перевезти товар~m=920 b=9~m=-660 h=-12~На новом рынке товар удалось быстро продать.~Переезд оказался дорогим и закончился травмой.|Сделать перерыв и навестить родных~m=-62 s=12~Временная пауза снизила тревогу.|market-threat;1992;1999;post
+Зарплата в ящиках|Предприятие предлагает выдать часть зарплаты своим товаром. Во дворе уже обменивают коробки на продукты.|Попросить письменную разбивку расчёта~r=7 i=4~Сумму долга удалось сохранить в ведомости.|Забрать несколько коробок и искать покупателя~m=1190 b=8~m=-460 r=-11~Покупатель забрал всю партию за живые деньги.~Товар не удалось продать даже за половину цены.|Раздать часть вещей родственникам~m=-62 s=11 b=4~У нескольких семей отпала срочная покупка.|barter;1992;1999;post
+Почтовый перевод из новой страны|Знакомый отправил деньги из бывшей союзной республики. Почта просит уточнить номинал и документы.|Сверить реквизиты в отделении~r=6 i=4~Перевод приняли без дополнительных расходов.|Попытаться получить всю сумму через посредника~m=945 b=8~m=-480 s=-8~Перевод выдали до изменения курса.~Посредник взял деньги за услугу и пропал.|Отправить знакомому длинное письмо~m=-22 s=10~В ответ пришла свежая фотография семьи.|remittance;1992;1999;post
+Новая вывеска на комбинате|Руководство объявляет смену владельца. На складе ждут, кому предложат подписать новый договор.|Сверить договор и стаж до подписи~r=7 i=5~Условия удалось закрепить письменно.|Попросить долю вместо части премии~m=1500 b=8~m=-590 s=-9~Долю удалось выгодно продать партнёрам.~Новые владельцы не признали устной договорённости.|Провести вечер с бывшей бригадой~m=-58 s=11~Бригада договорилась поддерживать связь.|new-sign;1992;2004;post
+Старый кооператор ищет ученика|На углу работает мастерская, возникшая в годы перестройки. Мастер собирается передавать инструменты и заказы.|Помочь описать инструменты и клиентов~r=7 i=5 m=130~Из списка получилась ясная передача дел.|Купить мастерскую с постоянными заказами~j=cooperator m=1240 b=8~m=-630 r=-10~Постоянные заказчики остались у новой команды.~Часть заказов ушла вместе с прежним владельцем.|Оставить мастеру на память сделанный вместе предмет~m=-56 s=12~Старый мастер поставил его на свою полку.|old-workshop;1993;2087;post
+`);
+
+const oldAge = catalog('senior-', 55, 99, 'Поздние годы', 'connections', `
+Шесть соток на окраине|Появился участок с покосившимся сараем. Весной придётся выбирать между ремонтом и первыми посевами.|Проверить границы и составить план грядок~r=5 i=3 h=4~До тепла удалось подготовить землю.|Купить сразу теплицу и семена на продажу~m=440 b=5~m=-220 h=-8~Урожай разошёлся по соседним дворам.~Град испортил первые всходы.|Оставить место для беседки и цветов~m=-48 s=11 h=4~В беседке прожили почти всё лето.|six-sotkas
+Внуки на каникулы|Младшие в семье просятся на две недели в гости. На лето уже были свои планы.|Договориться с родными о сроках и помощи~b=5 r=5~Получилось отдохнуть и провести время вместе.|Позвать сразу всех кузенов~b=10 s=13~h=-9 s=-6~Дом надолго наполнился голосами и смехом.~Шумом и беготнёй утомились даже дети.|Научить младших любимой настольной игре~m=-22 s=12~Игру попросили повторить на следующие каникулы.|grandchildren
+Бобина семейной хроники|У кого-то в семье сохранилась бобина со съёмкой из советских лет. Просмотр может собрать людей, которые давно не встречались.|Узнать в архиве, кто может сохранить запись~i=5 r=5~Запись удалось перевести в доступный формат.|Объединить несколько записей в платный показ~m=365 b=7~m=-138 s=-6~Показ собрал соседей и окупил подготовку.~Аппаратура подвела, выручку пришлось вернуть.|Посмотреть фильм с самыми близкими~m=-31 s=12~Несколько семейных историй вспомнились заново.|reel
+Дачный автобус отменили|До участка снова нужно ехать с пересадкой. У остановки собирают жалобы на новое расписание.|Собрать точные даты и подать заявление~r=6 b=4~Перевозчик добавил рейс в выходные.|Заказать общий частный автобус~m=335 b=7~m=-155 r=-7~Соседей хватило, чтобы покрыть заказ.~Часть людей не пришла, оплату разделили на остальных.|Провести выходной в городском саду~m=-21 s=10 h=4~Удалось погулять без долгой дороги.|garden-bus
+Первый звонок внука|В семье ждут школьный праздник. Младший ребёнок придумал, как можно устроить свою линейку дома.|Вместе проверить список школьных вещей~r=5 b=4~К первому дню всё оказалось на месте.|Попросить разрешить семейный концерт в школе~b=9 s=10~m=-76 s=-5~К концерту присоединились другие семьи.~Зал не успели открыть, и реквизит остался дома.|Повторить любимое школьное стихотворение~m=-15 s=12~Его потом учили всей семьёй.|grand-school
+Земля после заморозка|На участке похолодало. Дачники спорят, стоит ли пересевать все грядки сразу.|Осмотреть грядки и помочь соседям с укрытием~h=4 r=5~Часть посадок удалось сохранить.|Взять взаймы рассаду для полного пересева~m=380 b=6~m=-145 h=-7~Рассада прижилась и окупила сезон.~За рассаду пришлось заплатить, урожая не было.|Посадить неприхотливые цветы~m=-24 s=10~У забора выросла яркая полоса.|frost
+Прогулка по бывшему заводу|Бывший завод открыли для экскурсии. На старых стендах ещё видны знакомые фамилии.|Подписать для музея фотографию бригады~r=6 i=5~Музей добавил точную подпись к снимку.|Провести авторскую экскурсию по цеху~m=280 b=7~h=-9 s=-5~Экскурсию повторили для нескольких групп.~Маршрут оказался длиннее и тяжелее, чем обещали.|Побеседовать со старым товарищем у проходной~m=-20 s=11~Оба по-разному помнили один и тот же день.|factory-tour
+Сундучок с письмами|В ящике сохранились письма из лагеря, со службы и с далёких поездок. Родные спрашивают, от кого они.|Рассортировать письма по датам и отправителям~i=5 r=5~Получилась ясная история семьи.|Предложить несколько писем выставке~m=255 r=8~m=-70 s=-7~За копии писем выставка выплатила гонорар.~От участия отказались из-за разногласий в семье.|Прочесть одно письмо вслух~m=-13 s=12~За столом вспомнили знакомый голос.|letter-box
+Посиделки на огороде|После сбора урожая соседи предлагают большой общий стол. У каждого есть свой рецепт.|Составить список, чтобы блюд всем хватило~r=5 b=4~Договорились о посильном вкладе.|Собрать лавку с консервами на ярмарке~m=415 b=7~m=-152 h=-5~Заготовки разобрали уже утром.~Продаж не хватило даже для оплаты места.|Угостить соседей вареньем на веранде~m=-24 s=11~Соседи принесли свои банки на пробу.|garden-table
+Родословная с пустой строкой|В семейной тетради не хватает имени человека со старого портрета. Осталось несколько свидетелей.|Позвонить тем, кто точно помнит семью~i=5 b=4~Имя удалось восстановить по двум рассказам.|Заказать полный поиск по архивам~b=10 i=7~m=-120 s=-5~Кроме имени нашли несколько писем.~Справку найти не удалось, работу всё равно оплатили.|Оставить под портретом свои воспоминания~m=-16 s=10~Пусть имя неизвестно, в альбоме осталось лицо.|genealogy
+Диктофон для воспоминаний|Библиотека собирает устные рассказы о прошедшей эпохе. Просят подготовить один случай из жизни.|Сверить имена и даты перед записью~i=5 r=6~Точную запись приняли в районный архив.|Взяться записать рассказы всего дома~m=340 b=8~m=-126 h=-7~Рассказы сложились в самостоятельную коллекцию.~Часть записей пришлось делать заново, сил не хватило.|Записать для семьи один смешной эпизод~m=-17 s=12~Дети и взрослые слушали вместе.|oral-history
+Из старого альбома пропал лист|У альбома вырвали лист с фотографиями. Родные не знают, случилось это при переезде или раньше.|Спросить у близких, у кого есть копии~i=4 b=5~Удалось восстановить несколько снимков.|Попросить оценить снимки у коллекционера~m=245 i=5~m=-80 s=-5~Коллекционер купил копию с видом старой улицы.~Подходящих снимков не нашлось, оценку пришлось оплатить.|Вклеить на пустое место свежий семейный снимок~m=-20 s=11~У альбома появилось новое продолжение.|missing-photo
+Калитка открывается наружу|Садовая калитка после зимы заедает. Сосед предлагает обменять инструмент на часть урожая.|Попросить мастера сначала проверить петли~h=4 r=5~Простой ремонт занял меньше часа.|Обновить заодно забор из купленных остатков~m=330 b=6~m=-147 h=-8~Хороших досок хватило даже на соседскую калитку.~Часть досок оказалась сырой и покоробилась.|Покрасить калитку любимым цветом~m=-21 s=10~Калитку стало легко узнавать издалека.|gate
+Тетрадь донорских справок|При разборе бумаг нашлись справки многолетней давности. Архив предлагает принять копии и рассказ владельца.|Рассказать, что точно сохранилось в памяти~r=6 i=4~Запись дополнила одну из архивных папок.|Попробовать восстановить все справки~m=315 r=8~m=-103 h=-5~Документы помогли подтвердить право на выплату.~Для подтверждения не хватило одного подлинника.|Провести вечер с теми, кто помнит те годы~m=-19 s=11~Истории оказались важнее недостающих печатей.|certificates
+Садовый кружок для начинающих|В местном клубе спрашивают, кто может объяснить, какие растения переживают суровую зиму.|Показать пару проверенных сортов~i=5 r=5~Записи о сортах взяли с собой несколько учеников.|Принять заказы на рассаду от всей группы~m=365 b=6~m=-127 h=-6~Все заказчики получили крепкие растения.~После холода пришлось вернуть несколько предоплат.|Подарить ученикам семена из своего сада~m=-24 s=11~Через лето ученики принесли свои цветы.|seedlings
+Телефон вместо письма|Младшие предлагают созваниваться с видео. На экране мелкие буквы и пока никто не договорился о времени.|Попросить один урок у близких~i=6 b=4~Разговоры наладились без звонков посреди ночи.|Купить устройство по слишком выгодному объявлению~m=295 i=5~m=-165 s=-5~Устройство удалось купить заметно дешевле.~Устройство оказалось неисправно, продавец исчез.|По-прежнему писать открытки от руки~m=-19 s=11~Новая открытка дошла к празднику.|video;2005;2087;post
+Чай в новом клубе|В районе открыли клуб старшего поколения. Первые встречи проводят в помещении бывшего магазина.|Прийти на знакомство и узнать расписание~r=5 b=5~Нашлись занятия по силам и по душе.|Предложить проводить платные мастер-классы~m=330 b=7~m=-95 h=-5~На занятия записалось больше людей, чем думали.~На первый мастер-класс пришёл только один человек.|Принести к чаю любимую выпечку~m=-23 s=11~У стола познакомились люди из соседних домов.|club
+`);
+
+const newScenes = [...earlyYears, ...pioneers, ...youngAdults, ...midlife, ...oldAge];
+
+// Особые ответы могут требовать репутацию, связи или конкретную запись в прошлых годах.
+const sceneSecrets = {
+  'early-nursery': ['Договориться о постепенном привыкании', {health: 5, happiness: 10, connections: 4}, 'Заведующая позволила родным оставаться на первых занятиях.', {past: ['child-3']}],
+  'early-village': ['Попросить соседей оставить место в машине', {money: 14, happiness: 9, connections: 5}, 'Соседи довезли семью до бабушкиного двора.', {connections: 57}],
+  'pioneer-scarf': ['Повести свою звёздочку на церемонию', {reputation: 10, happiness: 9, connections: 4}, 'После приёма звёздочка осталась вместе и занялась общим делом.', {past: ['pioneer-october']}],
+  'pioneer-camp': ['Получить место по рекомендации отряда', {health: 7, happiness: 12, money: -15}, 'Вожатая помогла оформить путёвку на подходящую смену.', {reputation: 76, past: ['pioneer-scarf']}],
+  'pioneer-penpal': ['Связать почтой два школьных кружка', {intellect: 7, connections: 8, happiness: 5}, 'Классы продолжили обмен письмами уже от имени кружков.', {past: ['pioneer-palace']}],
+  'coming-brigade': ['Пойти в отряд со знакомым наставником', {money: 230, reputation: 7, connections: 4}, 'Наставник помог подобрать работу и оплату без неожиданностей.', {reputation: 78, past: ['coming-shift']}],
+  'coming-kitchen-rock': ['Позвать музыканта, у которого уже слушали редкую запись', {happiness: 13, connections: 8, intellect: 3}, 'Он принёс новые песни и остался играть на кухне.', {past: ['coming-bones']}],
+  'coming-blueprint': ['Попросить заводского мастера подписать работу', {money: 180, intellect: 7, reputation: 6}, 'Мастер направил работу на конкурс с рекомендацией.', {reputation: 79, past: ['coming-shift']}],
+  'midlife-tape-deck': ['Попросить комиссионщика провести проверку вне очереди', {money: 315, connections: 5, reputation: 4}, 'Аппарат проверили и законно приняли на продажу.', {connections: 68}],
+  'midlife-workshop-1988': ['Открыть кооператив с поручительством бывшей бригады', {job: 'cooperator', money: 580, connections: 6, reputation: 5}, 'Бывшие коллеги поручились за мастерскую и дали первые заказы.', {connections: 72, past: ['design-bureau', 'coming-shift']}],
+  'midlife-shuttle': ['Продать товар через старого партнёра по кооперативу', {money: 830, connections: 7, reputation: 4}, 'Партнёр заранее договорился с постоянными покупателями.', {connections: 75, past: ['cooperative', 'midlife-workshop-1988']}],
+  'midlife-typescripts': ['Передать текст проверенному редактору', {connections: 7, intellect: 6, happiness: 6}, 'Редактор сохранил копию у себя до более спокойного времени.', {past: ['samizdat']}],
+  'senior-oral-history': ['Записать свои воспоминания вместе с бывшим сослуживцем', {reputation: 9, happiness: 13, connections: 5}, 'Два рассказа сохранили рядом в одной архивной папке.', {past: ['afghan-post']}],
+  'senior-seedlings': ['Пригласить учеников на свой участок', {happiness: 12, health: 5, connections: 6}, 'На участке провели практическое занятие с настоящими грядками.', {past: ['senior-six-sotkas']}],
+  'senior-factory-tour': ['Передать музею чертёж, с которого началась работа', {reputation: 9, intellect: 5, happiness: 11}, 'Первый чертёж занял место рядом со снимком бригады.', {past: ['coming-blueprint', 'design-bureau']}]
+};
+newScenes.forEach(card => {
+  if (sceneSecrets[card.id]) card.choices.push(special(...sceneSecrets[card.id]));
+});
+
+const lifeMilestones = [
+  event('birth-ward', 0, 0, 1950, 1978, 'В роддоме', game => {
+    const opening = 'Первый день жизни. В палате в ' + (game.city === 'Москва' ? 'Москве' : 'родном городе') +
+      ' медсестра приносит ребёнка на кормление. Родным предстоит решить, как провести первые дни после выписки.';
+    if (game.year === 1961) return opening + ' По радио передают весть о полёте Гагарина.';
+    if (game.year === 1962) return opening + ' Родные спорят о тревожных новостях с Кубы.';
+    return opening;
+  }, [
+    safe('Договориться о визите участковой сестры', {health: 6, reputation: 4}, 'Участковая сестра помогла наладить уход в первые дни дома.'),
+    risk('Попросить отдельную комнату на время выписки', 29, 'connections',
+      {health: 9, happiness: 9}, {money: -11, happiness: -6}, 'Семью поселили в тихой комнате.', 'Свободной комнаты не оказалось.'),
+    soul('Провести первую неделю рядом с родными', {money: -5, happiness: 11, connections: 3}, 'Родные встретили малыша и помогли устроить дом.')
+  ], {category: 'Рождение', priority: true}),
+  {...historical(1961, 'Гагарин на орбите', '12 апреля Юрий Гагарин облетел Землю на «Востоке-1». Из репродукторов доносятся новости, у газетных киосков собираются люди.', game => lifeAge(game) < 7 ? yearOptions(
+    ['Послушать сообщение всей семьёй', {reputation: 4, happiness: 4}, 'Новости слушали даже на лестничной площадке.'],
+    ['Попросить родных найти первый выпуск газеты', 30, 'connections', {connections: 5, happiness: 9}, {money: -8, happiness: -4}, 'Сосед уступил семье один номер.', 'Первый выпуск везде разобрали.'],
+    ['Сделать с родными бумажный корабль', {money: -3, happiness: 11, intellect: 3}, 'Корабль занял место рядом с игрушками.']
+  ) : yearOptions(
+    ['Подготовить заметку для стенгазеты', {intellect: 7, reputation: 6}, 'В заметке точно описали полёт и время запуска.'],
+    ['Записаться на конкурс моделей', 31, 'intellect', {intellect: 9, reputation: 8, money: 24}, {money: -9, happiness: -5}, 'Модель получила приз районного клуба.', 'Модель повредили при перевозке.'],
+    ['Рисовать Землю такой, какой её видно с орбиты', {money: -5, happiness: 12}, 'Рисунок остался в школьном альбоме.']
+  )), minAge: 1},
+  {...historical(1962, 'Октябрьская тревога', 'Из-за противостояния СССР и США вокруг Кубы в доме тревожно слушают радио. Соседи обсуждают, стоит ли запасать соль и спички.', game => lifeAge(game) < 7 ? yearOptions(
+    ['Дать родным дождаться подтверждённых новостей', {reputation: 4, happiness: 4}, 'Семья не стала менять планы из-за слухов.'],
+    ['Попросить семью купить запас соли и спичек', 28, 'connections', {connections: 6, money: 12}, {money: -12, happiness: -6}, 'Запасы разделили между семьями, расходы окупились.', 'Из-за слухов продукты купили втридорога.'],
+    ['Остаться дома и отвлечься вместе с родными', {money: -4, happiness: 10}, 'Знакомая сказка помогла переждать тревогу.']
+  ) : yearOptions(
+    ['Задавать вопросы о новостях взрослым', {intellect: 5, reputation: 5}, 'Дома удалось поговорить о том, что известно и что остаётся слухом.'],
+    ['Предложить соседям купить запас вместе', 29, 'connections', {connections: 8, money: 22}, {money: -14, happiness: -7}, 'Соседи поделили покупки и расходы.', 'Длинная очередь закончилась у пустой полки.'],
+    ['Устроить у дома тихий вечер с друзьями', {money: -5, happiness: 12}, 'Вечер за играми помог всем немного успокоиться.']
+  )), minAge: 1},
+  event('career-route', 17, 19, 1967, 2001, 'Куда после школы', game => {
+    const departure = afghanRisk(Math.max(game.year, game.birth + 18), game.connections);
+    return 'Аттестат на руках. Можно продолжить учёбу, пойти на завод или выбрать службу.' +
+      (departure ? ' При начале службы игровой шанс отправки в Афганистан составляет ' + departure + '%.' : '');
+  }, [
+    safe('Поступить в ПТУ', {job: 'vocational', reputation: 6, intellect: 4}, 'На практической специальности нашлось место со стипендией.'),
+    risk('Сдать вступительные экзамены в вуз', 38, 'intellect',
+      {job: 'student', intellect: 8, reputation: 6}, {job: 'worker', money: -45, reputation: -4, happiness: -7},
+      'Экзамены прошли удачно, получено место со стипендией.', 'До проходного балла не хватило нескольких баллов. Пока предстоит работать на заводе.'),
+    soul('Выбрать завод и вечернее время для себя', {job: 'worker', money: 94, happiness: 7}, 'Наставник взял в бригаду и оставил свободными вечера.'),
+    safe('Выбрать военную службу', {job: 'soldier', reputation: 4}, 'Заявление о выборе службы приняли. Место службы определяет назначение.')
+  ], {category: 'Выбор профессии', priority: true, reqStat: {key: 'job', op: '=', value: 'school'}}),
+  event('afghan-post', 18, 29, 1979, 1989, 'Письмо из Афганистана',
+    'Служба идёт далеко от дома. После тяжёлой недели в подразделении ждут почту и медицинский осмотр.', [
+      safe('Пройти осмотр и написать домой', {health: 8, reputation: 5}, 'Врач помог восстановиться, письмо отправили с ближайшей почтой.'),
+      risk('Взять дополнительную смену в тылу', 24, 'health',
+        {money: 360, reputation: 11}, {health: -22, happiness: -11},
+        'Смену закрыли вовремя и выплатили надбавку.', 'Переутомление привело к болезни, пришлось провести неделю в лазарете.'),
+      soul('Посвятить тихий вечер письму семье', {money: -8, happiness: 13}, 'Близким удалось рассказать, как проходит служба.')
+    ], {priority: true, category: 'Военная служба', reqStat: {key: 'job', op: '=', value: 'soldier'}, deployed: true}),
+  event('afghan-home', 19, 59, 1980, 2037, 'Товарищ по службе',
+    'После возвращения бывший сослуживец предлагает встретиться. С прошлой встречи у обоих накопилось много новостей.', [
+      safe('Встретиться днём и поговорить без спешки', {reputation: 6, health: 4, connections: 4}, 'Обоим стало проще рассказывать о трудных месяцах.'),
+      risk('Собрать большую встречу бывшего подразделения', 30, 'connections',
+        {connections: 12, happiness: 13}, {money: -125, happiness: -6}, 'Приехали товарищи из нескольких городов.', 'Большинство не смогло приехать, помещение уже оплатили.'),
+      soul('Обменяться письмами и семейными фотографиями', {money: -14, happiness: 12}, 'Переписка продолжилась после встречи.')
+    ], {category: 'После службы', requiresDeployment: true}),
+  event('chernobyl-home', 12, 55, 1987, 1993, 'Письмо от переселённой семьи',
+    'Семья, которой тогда помогали после аварии, пишет с нового места. В письме просят узнать о работе и передают детский рисунок.', [
+      safe('Проверить объявления и отправить адреса', {reputation: 7, connections: 4}, 'По одному из адресов семью позвали на собеседование.'),
+      risk('Организовать сбор на переезд через знакомых', 31, 'connections',
+        {money: 210, reputation: 10, connections: 6}, {money: -110, reputation: -8}, 'Знакомые нашли недорогой транспорт, часть затрат возместили.', 'Поездка сорвалась, а задаток за транспорт пропал.'),
+      soul('Приехать в гости и привезти детскую книгу', {money: -46, happiness: 12}, 'Из короткого визита выросла дружба между семьями.')
+    ], {category: 'После Чернобыля', past: ['history-1986']}),
+  event('pension-day', 60, 60, 2010, 2087, 'Пенсионное удостоверение',
+    'Пенсия оформлена. В конверте лежат документы, бывшие коллеги предлагают зайти в гости, а первая свободная неделя ещё ничем не занята.', [
+      safe('Проверить выплаты и льготы', {reputation: 6, intellect: 4, money: 125}, 'Выплаты сверили и обнаружили небольшую доплату.'),
+      risk('Продолжить брать небольшие заказы', 35, 'connections',
+        {money: 560, happiness: 7}, {health: -9, money: -120}, 'Нашёлся заработок с удобным расписанием.', 'Работа отняла силы, а клиент отказался от заказа.'),
+      soul('Посвятить первую неделю близким и саду', {money: -36, happiness: 15, health: 5}, 'Неделя началась с неспешных завтраков и прогулок.')
+    ], {category: 'Поздние годы', priority: true, reqStat: {key: 'job', op: '=', value: 'retiree'}})
+];
+
+const ordinary = [...childhood, ...schoolYears, ...teens, ...youth, ...adulthood, ...laterLife];
+const situationOptions = {
+  'Семья решает': ['Попросить помощи у родни', {connections: 5, money: 6, happiness: 4}, 'Родные помогли и избавили семью от лишних хлопот.'],
+  'Школьные годы': ['Обратиться к любимому учителю', {intellect: 5, reputation: 4, happiness: 4}, 'Учитель нашёл время помочь и кое-что объяснить.'],
+  'Юность': ['Позвать на помощь старшего товарища', {connections: 5, intellect: 4, happiness: 5}, 'Товарищ поделился опытом и познакомил с нужными людьми.'],
+  'Самостоятельная жизнь': ['Попросить совета у наставника', {money: 130, connections: 6, intellect: 4}, 'Наставник поделился опытом, и расходы удалось сократить.'],
+  'Повседневная жизнь': ['Заручиться поддержкой знакомых', {money: 160, connections: 6, reputation: 4}, 'Знакомые помогли решить вопрос без лишних расходов.'],
+  'Зрелые годы': ['Попросить помощи у давних друзей', {health: 4, connections: 5, happiness: 6}, 'Друзья взяли заботы на себя и заодно зашли в гости.']
+};
+ordinary.forEach((card, index) => {
+  if (index % 2 === 0) card.choices.push(special(...situationOptions[card.category]));
+});
+
+const action = (id, minAge, maxAge, choice, jobsOnly = [], options = {}) =>
+  ({id, minAge, maxAge, minYear: 1950, maxYear: 2087, reqStat: null, choice, jobsOnly, ...options});
+const pastimes = [
+  action('stories', 0, 8, soul('Послушать семейные сказки', {happiness: 8, intellect: 4, money: -2}, 'Разговоры за сказками стали любимым делом семьи.')),
+  action('park', 0, 99, soul('Погулять в парке', {health: 5, happiness: 7, money: -4}, 'Прогулка помогла отдохнуть.')),
+  action('library', 6, 99, safe('Пойти в библиотеку', {intellect: 6, reputation: 2}, 'В читальном зале нашлось несколько интересных книг.')),
+  action('dancing', 14, 99, soul('Сходить на танцы', {happiness: 10, connections: 4, money: -15}, 'Вечер закончился новыми знакомствами.')),
+  action('porter', 16, 69, risk('Подработать грузчиком', 37, 'health', {money: 170, health: -4}, {money: 25, health: -11, happiness: -4},
+    'Оплатили всю смену.', 'Смена закончилась ушибом и небольшой оплатой.')),
+  action('market', 16, 99, {...risk('Достать дефицит у спекулянта', 32, 'connections', {money: -42, happiness: 14, connections: 4},
+    {money: -100, reputation: -9, happiness: -5}, 'Нужную вещь удалось достать.', 'Вещь оказалась с браком, оплату не вернули.'), foreign: true}, [], {maxYear: 1993}),
+  action('neighbors', 0, 99, safe('Помочь соседям', {reputation: 4, connections: 5, money: -3}, 'Соседи запомнили помощь и предложили поддержать в ответ.')),
+  action('compost', 0, 99, soul('Ухаживать за клумбой', {happiness: 8, health: 4, money: -4}, 'За окном стало чуть зеленее.')),
+  action('care', 12, 99, safe('Зайти на профилактический осмотр', {health: 9, reputation: 2, money: -28}, 'Появился простой план, как беречь силы.')),
+  action('repair', 12, 99, risk('Починить старую вещь на заказ', 32, 'intellect', {money: 150, intellect: 5}, {money: -47, reputation: -5},
+    'За удачный ремонт рассчитались сразу.', 'Запасная деталь не подошла, часть оплаты ушла на замену.')),
+  action('jail-books', 18, 99, safe('Почитать в библиотеке', {intellect: 5, reputation: 3}, 'Книгу удалось дочитать до вечернего отбоя.'), ['prisoner']),
+  action('jail-letters', 18, 99, soul('Написать письмо домой', {happiness: 8, money: -4}, 'Письмо забрали с вечерней почтой.'), ['prisoner']),
+  action('jail-walk', 18, 99, safe('Выйти на прогулку', {health: 5, happiness: 4}, 'Во дворе получилось немного размяться.'), ['prisoner']),
+  action('army-books', 18, 29, safe('Почитать в клубе части', {intellect: 5, reputation: 3}, 'В клубе нашёлся интересный журнал.'), ['soldier']),
+  action('army-letters', 18, 29, soul('Написать домой', {happiness: 9, money: -4}, 'Вскоре пришёл ответ из дома.'), ['soldier']),
+  action('army-sport', 18, 29, safe('Потренироваться с товарищами', {health: 5, connections: 4}, 'После тренировки договорились повторить.'), ['soldier']),
+  action('queue', 7, 99, risk('Постоять в очереди за дефицитом', 46, 'connections', {money: 65, happiness: 7},
+    {money: -11, happiness: -4}, 'К закрытию магазина на складе ещё оставался нужный товар.', 'Товар разобрали за несколько покупателей до кассы.'), [], {maxYear: 1993}),
+  action('cinema', 5, 99, soul('Сходить в кино', {happiness: 10, money: -9}, 'После фильма ещё долго обсуждали последнюю сцену.')),
+  action('gym', 9, 79, safe('Пойти на тренировку в секцию', {health: 8, happiness: 4, money: -6}, 'Тренер подобрал занятия по силам.')),
+  action('placard', 6, 99, soul('Нарисовать плакат для дворового праздника', {happiness: 7, intellect: 3, money: -5}, 'Рисунок вывесили у входа, прохожие останавливались посмотреть.')),
+  action('august-radio', 12, 99, safe('Сверить новости о ГКЧП', {intellect: 5, reputation: 3}, 'Сравнение нескольких сообщений помогло разобраться, что происходит.'), [], {minYear: 1991, maxYear: 1991})
+];
+
+const freeScenarios = [
+  {ids: ['stories', 'compost', 'park'], copy: 'Выдался свободный час для прогулки или домашнего дела.'},
+  {ids: ['library', 'cinema', 'placard'], copy: 'На районной афише появилось несколько новых занятий.'},
+  {ids: ['gym', 'dancing'], copy: 'Вечером в районном клубе открыты секция и танцплощадка.'},
+  {ids: ['queue', 'market'], copy: 'По двору разошёлся слух о завозе. На всё остался один свободный час.'},
+  {ids: ['repair', 'porter'], copy: 'Знакомые оставили в записке несколько способов подработать.'},
+  {ids: ['august-radio'], copy: 'Август 1991-го. Во дворе обсуждают сообщения о ГКЧП, а на вечер уже были планы.'},
+  {ids: ['jail-books', 'jail-letters', 'jail-walk'], copy: 'По распорядку до отбоя ещё есть время для одного дела.'},
+  {ids: ['army-books', 'army-letters', 'army-sport'], copy: 'После дежурства осталось немного свободного времени.'}
+];
+
+const allEvents = [...milestones, ...ordinary, ...service, ...custody, ...opportunities, ...newScenes, ...lifeMilestones];
+const byId = Object.fromEntries(allEvents.map(card => [card.id, card]));
+const ordinaryIds = new Set([...ordinary, ...newScenes].map(card => card.id));
+const legacyOpportunityIds = new Set(opportunities.map(card => card.id));
+const actionsById = Object.fromEntries(pastimes.map(activity => [activity.id, activity.choice]));
+const inflationRates = {1991: .63, 1992: .36, 1993: .49, 1994: .60, 1995: .73, 1996: .88, 1997: .92, 1998: .57, 1999: .78};
+
+function matches(requirement, game) {
+  if (!requirement) return true;
+  const {key, op, value} = requirement;
+  if (op === '>') return game[key] > value;
+  if (op === '<') return game[key] < value;
+  if (op === '=') return game[key] === value;
+  return value.includes(game[key]);
+}
+const hadEvent = (game, id) => game.usedEvents.includes(id) && game.turn?.cardId !== id;
+const onDeployment = game => game.job === 'soldier' && game.deployedYear != null && afghanRisk(game.year, 0) > 0;
+function eligible(card, game) {
+  const age = lifeAge(game);
+  return age >= card.minAge && age <= card.maxAge && game.year >= card.minYear &&
+    game.year <= card.maxYear && matches(card.reqStat, game) &&
+    (!card.phases || card.phases.includes(worldAt(game.year).id)) &&
+    (!card.deployed || onDeployment(game)) &&
+    (!card.requiresDeployment || (game.deployedYear != null && game.job !== 'soldier' && game.year > game.deployedYear)) &&
+    (!card.past || card.past.some(id => hadEvent(game, id)));
+}
+function note(game, title, detail = '') {
+  game.history.push({year: game.year, title, detail});
+}
+function newGame() {
+  const sex = pick(['m', 'f']);
+  const birth = rand(1950, 1978);
+  const family = pick(backgrounds);
+  const game = {
+    sex, firstName: pick(names[sex]), surname: pick(surnames)[sex === 'm' ? 0 : 1], city: pick(cities),
+    family: family.name, birth, year: birth, job: 'child', money: family.money,
+    reputation: family.reputation, connections: family.connections, intellect: family.intellect,
+    health: rand(77, 95), happiness: rand(57, 74), peakMoney: family.money, totalIncome: 0, annualIncome: 0,
+    prisonUntil: 0, demobYear: 0, graduationYear: 0, draftYear: 0, draftChecked: false,
+    deployedYear: null, deploymentRollYear: 0, career: ['child'], history: [], usedEvents: [],
+    riskWins: 0, riskLosses: 0, arrests: 0, persecuted: false, decisions: 0, freeActions: 0,
+    endReason: '', awards: [], turn: null
+  };
+  note(game, 'Рождение в роддоме', game.city + ' · Семья: ' + game.family.toLowerCase());
+  startYear(game);
+  return game;
+}
+function setJob(game, job) {
+  if (job === game.job) return;
+  game.job = job;
+  if (!game.career.includes(job)) game.career.push(job);
+  if (job === 'student') game.graduationYear = Math.max(game.year + 3, game.birth + 21);
+  if (job === 'vocational') game.graduationYear = Math.max(game.year + 2, game.birth + 18);
+  if (job === 'soldier') {
+    game.demobYear = game.year + rand(1, 2);
+    game.draftYear = 0;
+    game.draftChecked = true;
+  }
+}
+function updateJob(game) {
+  const age = lifeAge(game);
+  const change = (job, reason) => {
+    setJob(game, job);
+    note(game, jobName(game), reason);
+  };
+  if (game.job === 'prisoner') {
+    if (game.year < game.prisonUntil) return;
+    game.reputation = Math.max(18, game.reputation);
+    change(age >= 60 ? 'retiree' : 'unemployed', 'Срок закончился. Началась жизнь на свободе.');
+    return;
+  }
+  if (age >= 60 && game.job !== 'retiree') {
+    change('retiree', 'Оформлена пенсия.');
+  } else if (age === 7) {
+    change('school', 'Начались школьные занятия.');
+  } else if (game.draftYear && game.year >= game.draftYear) {
+    change('soldier', 'Началась срочная служба.');
+  } else if (age >= 18 && game.job === 'school' && (age > 19 || hadEvent(game, 'career-route'))) {
+    if (game.intellect >= 56 && game.reputation >= 34) {
+      change('student', 'После школы удалось поступить на учёбу.');
+    } else if (game.sex === 'm' && game.health >= 48 && Math.random() < .72) {
+      change('soldier', 'Пришла повестка. Началась срочная служба.');
+    } else {
+      game.draftChecked = true;
+      change('worker', 'После школы нашлась первая работа.');
+    }
+  } else if (game.job === 'student' && game.year >= game.graduationYear) {
+    change(game.intellect >= 59 ? 'engineer' : 'worker', 'Учёба закончилась. Диплом помог найти работу.');
+  } else if (game.job === 'vocational' && game.year >= game.graduationYear) {
+    change('worker', 'ПТУ окончено. Мастер помог устроиться на работу по специальности.');
+  } else if (game.job === 'soldier' && game.year >= game.demobYear) {
+    change('worker', 'Служба закончилась. Нашлась работа на гражданке.');
+  } else if (game.job === 'unemployed' && game.reputation >= 28) {
+    change(game.intellect >= 67 ? 'engineer' : 'worker', 'Снова удалось найти постоянную работу.');
+  }
+  if (!game.draftChecked && game.sex === 'm' && age >= 18 && age <= 22 && ['worker', 'engineer', 'unemployed'].includes(game.job)) {
+    game.draftChecked = true;
+    if (game.health >= 48 && Math.random() < .29) change('soldier', 'Пришла повестка. Началась срочная служба.');
+  }
+}
+function checkDeployment(game) {
+  if (game.job !== 'soldier' || game.deployedYear != null || game.deploymentRollYear === game.year) return;
+  const odds = afghanRisk(game.year, game.connections);
+  if (!odds) return;
+  game.deploymentRollYear = game.year;
+  if (rand(1, 100) <= odds) {
+    game.deployedYear = game.year;
+    if (game.year < 1989) game.demobYear = Math.max(game.demobYear, game.year + 2);
+    note(game, 'Отправка в Афганистан', 'Место службы изменилось по назначению. Игровой шанс отправки составлял ' + odds + '%.');
+  }
+}
+function chooseCard(game) {
+  const pool = allEvents.filter(card => !game.usedEvents.includes(card.id) && eligible(card, game));
+  const fixed = pool.find(card => card.historical || card.priority);
+  if (fixed) return fixed;
+  const restricted = {prisoner: 'Под стражей', soldier: 'Военная служба'}[game.job];
+  if (restricted) return pick(pool.filter(card => card.category === restricted)) ?? pick(pool.filter(card => ordinaryIds.has(card.id)));
+  const dated = pool.filter(card => card.minYear === card.maxYear);
+  if (dated.length) return pick(dated);
+  const periodCards = pool.filter(card => legacyOpportunityIds.has(card.id) || card.phases || card.maxYear - card.minYear < 15);
+  if (periodCards.length && Math.random() < .65) return pick(periodCards);
+  const expanded = pool.filter(card => newScenes.includes(card));
+  if (expanded.length && Math.random() < .42) return pick(expanded);
+  return pick(pool);
+}
+function earnedAwards(game) {
+  const age = lifeAge(game);
+  const awards = [
+    [game.riskWins >= 3 && game.riskWins >= game.riskLosses, 'Везунчик'],
+    [game.persecuted, 'Жертва репрессий'],
+    [game.career.includes('cooperator'), 'Кооператор'],
+    [age >= 80, 'Долгожитель'],
+    [age >= 100, 'Сто лет в строю'],
+    [game.connections >= 72, 'Человек со связями'],
+    [game.reputation >= 75, 'Уважаемый человек'],
+    [game.freeActions >= 12, 'Время для себя'],
+    [game.intellect >= 78, 'Книжный человек'],
+    [game.peakMoney >= 7500, 'Крепкий рубль'],
+    [game.arrests > 0 && game.job !== 'prisoner', 'Новый старт'],
+    [game.career.includes('soldier'), 'Дембель'],
+    [game.riskWins + game.riskLosses >= 8, 'Авантюрист'],
+    [milestones.every(card => game.usedEvents.includes(card.id)), 'Свидетель эпохи']
+  ];
+  const lasting = awards.slice(0, 5).filter(([earned]) => earned).map(([, title]) => title);
+  if (game.deployedYear != null) lasting.push('Ветеран Афганистана');
+  const other = shuffle(awards.slice(5).filter(([earned]) => earned).map(([, title]) => title));
+  return [...lasting, ...other.slice(0, Math.max(0, 6 - lasting.length)), pick(['Память двора', 'Строка в архиве', 'Голос поколения'])];
+}
+function checkEnd(game) {
+  if (game.health <= 0) game.endReason = 'Здоровье иссякло. Биография завершилась.';
+  else if (game.happiness <= 0) game.endReason = 'Началась тяжёлая депрессия. На этом история героя заканчивается.';
+  if (!game.endReason) return false;
+  if (!game.awards.length) {
+    game.awards = earnedAwards(game);
+    note(game, 'Дело закрыто', game.endReason);
+  }
+  return true;
+}
+function startYear(game) {
+  game.turn = null;
+  updateJob(game);
+  checkDeployment(game);
+  const age = lifeAge(game);
+  if (age > 0 && worldAt(game.year).id !== worldAt(game.year - 1).id) {
+    const phase = worldAt(game.year);
+    note(game, phase.title, phase.note + '.');
+  }
+  const rate = inflationRates[game.year];
+  if (rate) {
+    const loss = Math.round(Math.max(0, game.money) * (1 - rate));
+    game.money -= loss;
+    note(game, game.year === 1991 ? 'Обесценивание сбережений' : 'Инфляция', 'Накопления потеряли ' + currency(loss) + ' покупательной силы.');
+  }
+  const income = Math.round(jobs[game.job].income * (rate ? .48 + rate * .52 : 1));
+  const expenses = Math.round(income * (age < 18 ? .46 : .87));
+  game.annualIncome = income;
+  game.annualJob = game.job;
+  game.totalIncome += income;
+  game.money += income - expenses;
+  game.peakMoney = Math.max(game.money, game.peakMoney);
+  if (game.job === 'prisoner') {
+    game.happiness = clamp(game.happiness - 5, 0, 100);
+    game.health = clamp(game.health - 2, 0, 100);
+  }
+  if (onDeployment(game)) {
+    game.happiness = clamp(game.happiness - 3, 0, 100);
+    game.health = clamp(game.health - 2, 0, 100);
+  }
+  if (game.money < 0) game.happiness = clamp(game.happiness - 3, 0, 100);
+  if (age > 60) game.health = clamp(game.health - rand(1, 3), 0, 100);
+  if (age >= 19) game.happiness = clamp(game.happiness - rand(1, age > 60 ? 3 : 4), 0, 100);
+  if (age >= 100 || (age >= 78 && Math.random() * 100 < Math.max(0, (age - 77) * .95 + (45 - game.health) * .43))) {
+    game.health = 0;
+  }
+  if (checkEnd(game)) return;
+  const card = chooseCard(game);
+  game.usedEvents.push(card.id);
+  game.turn = {cardId: card.id, choiceOrder: shuffle([0, 1, 2, 3]), freeUsed: false,
+    ...drawPastimes(game), result: null, activityResult: null};
+}
+function drawPastimes(game) {
+  const restricted = ['prisoner', 'soldier'].includes(game.job);
+  const available = pastimes.filter(activity => eligible(activity, game) &&
+    (restricted ? activity.jobsOnly.includes(game.job) : !activity.jobsOnly.length));
+  const scenarios = freeScenarios.filter(scene => available.some(activity => scene.ids.includes(activity.id)));
+  const scene = pick(scenarios);
+  const first = pick(available.filter(activity => scene.ids.includes(activity.id)));
+  const others = shuffle(available.filter(activity => activity !== first)).slice(0, 2);
+  return {freeIds: shuffle([first, ...others]).map(activity => activity.id), freeCopy: scene.copy};
+}
+function arrest(game, years) {
+  if (game.job === 'prisoner') return '';
+  if (lifeAge(game) < 18) {
+    game.reputation = Math.max(12, game.reputation);
+    game.happiness = clamp(game.happiness - 5, 0, 100);
+    return 'Семью вызвали на разбирательство. Дело закончилось строгим предупреждением.';
+  }
+  game.arrests++;
+  game.prisonUntil = game.year + years + 1;
+  setJob(game, 'prisoner');
+  game.happiness = clamp(game.happiness - 9, 0, 100);
+  return 'Приговор: ' + ageLabel(years) + ' под стражей.';
+}
+function resolveChoice(game, choice, activity = false) {
+  const before = Object.fromEntries([...stats, ['intellect']].map(([key]) => [key, game[key]]));
+  const oldJob = game.job;
+  const isRisk = choice.kind === 'risk';
+  const odds = isRisk ? chance(choice, game) : null;
+  const roll = isRisk ? rand(1, 100) : null;
+  const success = !isRisk || roll <= odds;
+  const effects = isRisk ? (success ? choice.success : choice.failure) : choice.effects;
+  const lines = [];
+  if (isRisk) {
+    game[success ? 'riskWins' : 'riskLosses']++;
+    lines.push(success ? choice.goodText : choice.badText);
+  } else {
+    lines.push(choice.outcome);
+  }
+  for (const [key] of meters) game[key] = clamp(game[key] + (effects[key] ?? 0), 0, 100);
+  if (choice.foreign && !success) {
+    const penalty = Math.floor(worldAt(game.year).scrutiny / 3);
+    if (penalty) {
+      game.reputation = clamp(game.reputation - penalty, 0, 100);
+      lines.push('Из-за надзора за импортом последствия оказались строже.');
+    }
+  }
+  game.money += effects.money ?? 0;
+  game.peakMoney = Math.max(game.peakMoney, game.money);
+  if (effects.job === 'soldier' && lifeAge(game) < 18) {
+    game.draftYear = game.birth + 18;
+    lines.push('Начало службы назначено на ' + game.draftYear + ' год.');
+  } else if (effects.job) {
+    setJob(game, effects.job);
+  }
+  if (effects.persecution) game.persecuted = true;
+  if (effects.arrest) {
+    lines.push(arrest(game, effects.arrest));
+  } else if (game.reputation < 10 && game.job !== 'prisoner') {
+    if (lifeAge(game) < 18) {
+      lines.push(arrest(game, 1));
+    } else if (['worker', 'engineer', 'cooperator', 'soldier', 'student', 'vocational'].includes(game.job) && Math.random() < .68) {
+      setJob(game, 'unemployed');
+      game.reputation = 13;
+      lines.push('За испорченную репутацию исключили или уволили по статье. Следующая выплата будет меньше.');
+    } else {
+      lines.push(arrest(game, rand(1, 2)));
+    }
+  }
+  const delta = [...stats, ['intellect']].flatMap(([key]) => {
+    const difference = game[key] - before[key];
+    if (!difference) return [];
+    const value = key === 'money' ? currency(Math.abs(difference)) : String(Math.abs(difference));
+    return [statLabels[key] + ' ' + (difference > 0 ? '+' : '−') + value];
+  });
+  if (oldJob !== game.job) {
+    delta.push('Статус: ' + jobName(game));
+    const restricted = ['prisoner', 'soldier'];
+    if (!game.turn.freeUsed && restricted.some(job => job === oldJob || job === game.job)) {
+      Object.assign(game.turn, drawPastimes(game));
+    }
+  }
+  if (isRisk) delta.push('Кубик: ' + roll + ' из 100 при шансе ' + odds + '%');
+  const summary = lines.filter(Boolean).join(' ');
+  const detail = delta.join(' · ');
+  note(game, (activity ? 'Свободное действие: ' : '') + choice.label, [summary, detail].filter(Boolean).join(' '));
+  if (oldJob !== 'soldier' && game.job === 'soldier') checkDeployment(game);
+  return {label: choice.label, summary, detail, bad: !success};
+}
+
+const nodes = Object.fromEntries([
+  'stamp-state', 'monogram', 'person-name', 'person-note', 'date-year', 'date-note', 'stats', 'income', 'intellect', 'scene',
+  'world', 'world-phase', 'world-detail',
+  'scene-type', 'scene-title', 'scene-copy', 'decision-detail', 'choices', 'free-button', 'free-note', 'next-button',
+  'activity-result', 'recap', 'end-reason', 'recap-stats', 'awards', 'restart-button', 'entries', 'free-dialog', 'free-year', 'free-copy', 'free-choices'
+].map(id => [id, document.getElementById(id)]));
+const saveKey = 'life-file-ussr:1';
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(saveKey));
+    if (saved && Array.isArray(saved.history) && Array.isArray(saved.usedEvents) && jobs[saved.annualJob] &&
+        (saved.endReason || (byId[saved.turn?.cardId] && Array.isArray(saved.turn.freeIds)))) {
+      saved.draftYear ??= 0;
+      saved.draftChecked ??= lifeAge(saved) >= 18;
+      saved.deployedYear ??= null;
+      saved.deploymentRollYear ??= 0;
+      if (saved.turn) {
+        saved.turn.choiceOrder ??= shuffle([0, 1, 2, 3]);
+        saved.turn.freeCopy ??= 'На сегодня осталось время для одного свободного занятия.';
+      }
+      return saved;
+    }
+  } catch {
+    // Браузер может отключить хранилище для локальных файлов.
+  }
+  return newGame();
+}
+function save(game) {
+  try {
+    localStorage.setItem(saveKey, JSON.stringify(game));
+  } catch {
+    // Игра продолжает работать в памяти.
+  }
+}
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+function drawStats(game) {
+  nodes['person-name'].textContent = game.firstName + ' ' + game.surname;
+  nodes.monogram.textContent = game.firstName[0] + game.surname[0];
+  nodes['person-note'].textContent = cityName(game) + ' · Семья: ' + game.family.toLowerCase() +
+    ' · ' + (game.sex === 'm' ? 'муж.' : 'жен.');
+  nodes['date-year'].textContent = game.year;
+  nodes['date-note'].textContent = ageLabel(lifeAge(game)) + ' · ' + jobName(game);
+  nodes.stats.replaceChildren(...stats.map(([key, label]) => {
+    const value = game[key];
+    const box = element('div', 'stat');
+    box.append(element('dt', 'stat-label', label), element('dd', 'stat-value', key === 'money' ? currency(value) : value));
+    if (key !== 'money') {
+      const track = element('div', 'meter');
+      const fill = element('span', value < 25 ? 'meter-fill low' : 'meter-fill');
+      fill.style.width = value + '%';
+      track.setAttribute('aria-hidden', 'true');
+      track.append(fill);
+      box.append(track);
+    }
+    return box;
+  }));
+  const source = jobs[game.annualJob].source;
+  nodes.income.textContent = source ? source + ' за год · ' + currency(game.annualIncome) : 'За этот год выплат не было';
+  nodes.intellect.textContent = 'Интеллект · ' + game.intellect;
+  const phase = worldAt(game.year);
+  nodes.world.classList.toggle('high', phase.scrutiny >= 10);
+  nodes['world-phase'].textContent = phase.title;
+  const prospectiveYear = Math.max(game.year, game.birth + 18);
+  const odds = lifeAge(game) >= 17 && lifeAge(game) <= 22 ? afghanRisk(prospectiveYear, game.connections) : 0;
+  nodes['world-detail'].textContent = onDeployment(game) ? 'Место службы · Афганистан'
+    : odds && game.deployedYear == null && game.job !== 'prisoner'
+      ? phase.note + ' · Назначение в Афганистан при службе ' + odds + '%'
+      : phase.note;
+}
+const symbols = {safe: '✓', risk: '△', soul: '♡', special: '★'};
+const kindLabels = {safe: 'Осторожный выбор', risk: 'Рискованный выбор', soul: 'Выбор для души', special: 'Особая возможность'};
+function choiceButton(game, choice, callback) {
+  const button = element('button', 'choice');
+  const icon = element('span', 'choice-icon', symbols[choice.kind]);
+  icon.setAttribute('aria-hidden', 'true');
+  button.type = 'button';
+  button.dataset.kind = choice.kind;
+  button.title = kindLabels[choice.kind];
+  button.append(icon, element('span', 'choice-text', choice.label));
+  if (choice.chance) {
+    const percent = chance(choice, game);
+    button.append(element('span', 'chance', percent + '%'));
+    button.setAttribute('aria-label', choice.label + '. Шанс успеха ' + percent + ' процентов');
+  } else {
+    button.setAttribute('aria-label', choice.label + '. ' + kindLabels[choice.kind]);
+  }
+  button.addEventListener('click', callback);
+  return button;
+}
+function drawTimeline(game) {
+  const entries = [...game.history].reverse().map(entry => {
+    const item = element('li', 'entry');
+    const info = element('div');
+    info.append(element('strong', '', entry.title));
+    if (entry.detail) info.append(element('span', '', entry.detail));
+    const time = element('time', '', entry.year);
+    time.dateTime = String(entry.year);
+    item.append(time, info);
+    return item;
+  });
+  nodes.entries.replaceChildren(...entries);
+  nodes.entries.scrollTop = 0;
+}
+function availableChoices(game) {
+  const card = byId[game.turn.cardId];
+  let choices = typeof card.choices === 'function' ? card.choices(game) : card.choices;
+  if (['prisoner', 'soldier'].includes(game.job) && ordinaryIds.has(card.id)) {
+    choices = [
+      safe('Ответить и подсказать, что делать', {reputation: 5, intellect: 3}, 'Близкие воспользовались советом.'),
+      risk('Попросить связаться с давним знакомым', 30, 'connections', {connections: 6, money: 85}, {happiness: -5, money: -25},
+        'Давний знакомый помог уладить дело.', 'К тому времени знакомый уже уехал.'),
+      soul('Написать близким слова поддержки', {happiness: 10, money: -4}, 'Ответное письмо пришло через несколько недель.')
+    ];
+  }
+  return game.turn.choiceOrder.map(index => choices[index])
+    .filter(choice => choice && (choice.kind !== 'special' || canUnlock(choice, game)))
+    .map(choice => card.foreign && choice.kind === 'risk' ? {...choice, foreign: true} : choice);
+}
+function canUnlock(choice, game) {
+  const {connections, reputation, past} = choice.unlock ?? {};
+  if (connections == null && reputation == null && !past) {
+    return game.connections >= 55 || game.reputation >= 75;
+  }
+  return (connections != null && game.connections >= connections) ||
+    (reputation != null && game.reputation >= reputation) ||
+    Boolean(past?.some(id => hadEvent(game, id)));
+}
+function drawScene(game) {
+  const turn = game.turn;
+  const card = byId[turn.cardId];
+  const lockedContext = ['prisoner', 'soldier'].includes(game.job) && ordinaryIds.has(card.id);
+  nodes.scene.classList.toggle('historical', Boolean(card.historical));
+  nodes['scene-type'].textContent = turn.result ? 'Решение принято' : lockedContext ? 'Новости из дома' : card.category;
+  nodes['scene-title'].textContent = turn.result?.label ?? card.title;
+  const copy = typeof card.copy === 'function' ? card.copy(game) : card.copy;
+  nodes['scene-copy'].textContent = turn.result?.summary ?? (lockedContext ? 'Из дома пишут: ' + copy : copy);
+  nodes['decision-detail'].hidden = !turn.result?.detail;
+  nodes['decision-detail'].textContent = turn.result?.detail ?? '';
+  nodes['decision-detail'].classList.toggle('bad', Boolean(turn.result?.bad));
+  nodes.choices.hidden = Boolean(turn.result);
+  nodes.choices.replaceChildren(...(turn.result ? [] : availableChoices(game).map(choice =>
+    choiceButton(game, choice, () => chooseMain(choice)))));
+  nodes['free-button'].disabled = turn.freeUsed;
+  nodes['free-note'].hidden = Boolean(turn.result && !turn.freeUsed);
+  nodes['free-note'].textContent = turn.freeUsed ? 'Действие использовано' : 'Один раз в год';
+  nodes['next-button'].hidden = !turn.result;
+  nodes['activity-result'].hidden = !turn.activityResult;
+  nodes['activity-result'].textContent = turn.activityResult
+    ? [turn.activityResult.label + '.', turn.activityResult.summary, turn.activityResult.detail].filter(Boolean).join(' ')
+    : '';
+}
+function drawReport(game) {
+  nodes['end-reason'].textContent = game.endReason;
+  const report = [
+    ['Годы жизни', game.birth + '–' + game.year],
+    ['Прожито', ageLabel(lifeAge(game))],
+    ['Последний статус', jobName(game)],
+    ['Сбережения', currency(game.money)],
+    ['Максимум сбережений', currency(game.peakMoney)],
+    ['Получено за жизнь', currency(game.totalIncome)],
+    ['Решений принято', game.decisions],
+    ['Свободных действий', game.freeActions],
+    ['Удачных рисков', game.riskWins + ' из ' + (game.riskWins + game.riskLosses)],
+    ['Арестов', game.arrests]
+  ];
+  if (game.deployedYear != null) report.push(['Служба в Афганистане с', game.deployedYear]);
+  nodes['recap-stats'].replaceChildren(...report.map(([label, value]) => {
+    const row = element('div');
+    row.append(element('dt', '', label), element('dd', '', value));
+    return row;
+  }));
+  nodes.awards.replaceChildren(...game.awards.map(award => element('li', '', award)));
+}
+function render(focus = false) {
+  const ended = Boolean(game.endReason);
+  drawStats(game);
+  drawTimeline(game);
+  nodes['stamp-state'].textContent = ended ? 'ДЕЛО ЗАКРЫТО' : 'ДЕЛО ОТКРЫТО';
+  nodes.scene.hidden = ended;
+  nodes.recap.hidden = !ended;
+  if (ended) drawReport(game);
+  else drawScene(game);
+  if (focus) (ended ? nodes.recap : nodes.scene).focus({preventScroll: true});
+  save(game);
+}
+function chooseMain(choice) {
+  if (game.endReason || game.turn.result) return;
+  game.decisions++;
+  game.turn.result = resolveChoice(game, choice);
+  checkEnd(game);
+  render(true);
+}
+function choosePastime(id) {
+  if (game.endReason || game.turn.freeUsed || !game.turn.freeIds.includes(id)) return;
+  game.turn.freeUsed = true;
+  game.freeActions++;
+  game.turn.activityResult = resolveChoice(game, actionsById[id], true);
+  nodes['free-dialog'].close();
+  checkEnd(game);
+  render(true);
+}
+
+let game = load();
+nodes['next-button'].addEventListener('click', () => {
+  if (game.endReason || !game.turn.result) return;
+  game.year++;
+  startYear(game);
+  render(true);
+});
+nodes['free-button'].addEventListener('click', () => {
+  if (game.endReason || game.turn.freeUsed) return;
+  nodes['free-year'].textContent = game.year + ' год';
+  nodes['free-copy'].textContent = game.turn.freeCopy;
+  nodes['free-choices'].replaceChildren(...game.turn.freeIds.map(id =>
+    choiceButton(game, actionsById[id], () => choosePastime(id))));
+  nodes['free-dialog'].showModal();
+});
+nodes['restart-button'].addEventListener('click', () => {
+  game = newGame();
+  render(true);
+  window.scrollTo(0, 0);
+});
+render();
+
+</script>
+</body>
+</html>
